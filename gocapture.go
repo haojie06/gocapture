@@ -61,7 +61,7 @@ func main() {
 	fmt.Scanln(&selectIndex)
 	clearScreen()
 	fmt.Println("开始进行抓包")
-	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, 30*time.Second)
+	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, 1*time.Second)
 	handleErr(err)
 	defer handle.Close()
 	f, _ := os.Create("test.pcap")
