@@ -108,18 +108,20 @@ func main() {
 				clearScreen()
 				fmt.Println("MAP LENGTH:", len(bandwidthMap))
 				bandwidthList := sortIPs(bandwidthMap)
+				drawStr := ""
 				for _, ips := range bandwidthList {
 					record := geoIP(ips.Key)
-					fmt.Printf("ip: %-16s output: %-2.2fMB input: %-2.2fMB total: %-2.2fMB country: %-8s\n", ips.Key, float32(ips.Value.outBytes)/8388608, float32(ips.Value.inBytes)/8388608, float32(ips.Value.totalBytes)/8388608, record.Country.Names["en"])
+					drawStr = fmt.Sprintf("%s\nip: %-16s output: %-4.2fMb input: %-4.2fMb total: %-5.2fMb country: %-8s\n", drawStr, ips.Key, float32(ips.Value.outBytes)/1048576, float32(ips.Value.inBytes)/1048576, float32(ips.Value.totalBytes)/1048576, record.Country.Names["en"])
 					// fmt.Println("IP:", ips.Key, "OUT BYTES:", ips.Value.outBytes, "IN BYTES:", ips.Value.inBytes, "TOTAL BYTES:", ips.Value.totalBytes, "COUNTRY:", record.Country.Names["en"])
 				}
+				fmt.Println(drawStr)
 				packetCount = 0
 			}
 			// fmt.Printf("\b\b\b\b\b\b")
-			// fmt.Printf("%d/100", packetCount)
-			if packetCount%10 == 0 {
-				fmt.Print(".")
-			}
+			fmt.Printf("\r[%d/100]", packetCount)
+			// if packetCount%10 == 0 {
+			// 	fmt.Print(".")
+			// }
 		}
 	}
 }
@@ -149,7 +151,8 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 		pl[i] = Pair{k, v}
 		i++
 	}
-	sort.Sort(sort.Reverse(pl))
+	// sort.Sort(sort.Reverse(pl))
+	sort.Sort(pl)
 	return pl
 }
 
@@ -162,3 +165,6 @@ func geoIP(ipStr string) *geoip2.Country {
 	handleErr(err)
 	return record
 }
+
+// 数据量转化为可读性较高的方式
+// func dataTransfer()
