@@ -70,14 +70,14 @@ func main() {
 	defer f.Close()
 	packetCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	
+
 	for packet := range packetSource.Packets() {
 		// Process packet here
 		packetCount++
 		// 是否要写到文件中去
-		w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+		//w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		// 是否实时打印包
-		// log.Println(packet.NetworkLayer().NetworkFlow().Dst().String())
+		log.Println(packet.NetworkLayer().NetworkFlow().String())
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
