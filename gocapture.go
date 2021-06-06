@@ -61,7 +61,7 @@ func main() {
 	fmt.Scanln(&selectIndex)
 	clearScreen()
 	fmt.Println("开始进行抓包")
-	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, 1*time.Second)
+	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, 30*time.Second)
 	handleErr(err)
 	defer handle.Close()
 	f, _ := os.Create("test.pcap")
@@ -77,11 +77,12 @@ func main() {
 		// 是否要写到文件中去
 		//w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		// 是否实时打印包
-		log.Println(packet.NetworkLayer().NetworkFlow().String())
+		// log.Println(packet.NetworkLayer().NetworkFlow().Dst().String())
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
 		if packet.NetworkLayer() != nil {
+			log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
 				// 已经有记录时
 				ipBandwithInfo.outBytes += packet.Metadata().Length
