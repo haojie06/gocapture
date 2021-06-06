@@ -3,17 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"runtime"
 	"sort"
 	"strconv"
-	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/pcapgo"
+	"github.com/oschwald/geoip2-golang"
 )
 
 type IPStruct struct {
@@ -61,7 +62,8 @@ func main() {
 	fmt.Scanln(&selectIndex)
 	clearScreen()
 	fmt.Println("开始进行抓包")
-	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, 30*time.Second)
+	// timeout表示多久刷新一次数据包，负数表示立即刷新
+	handle, err := pcap.OpenLive(devices[selectIndex].Name, 1024, false, -1)
 	handleErr(err)
 	defer handle.Close()
 	f, _ := os.Create("test.pcap")
@@ -75,14 +77,14 @@ func main() {
 		// Process packet here
 		packetCount++
 		// 是否要写到文件中去
-		//w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+		w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
 		// 是否实时打印包
 		// log.Println(packet.NetworkLayer().NetworkFlow().Dst().String())
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
 		if packet.NetworkLayer() != nil {
-			log.Println(packet.NetworkLayer().NetworkFlow().String())
+			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
 				// 已经有记录时
 				ipBandwithInfo.outBytes += packet.Metadata().Length
@@ -107,10 +109,14 @@ func main() {
 				fmt.Println("MAP LENGTH:", len(bandwidthMap))
 				bandwidthList := sortIPs(bandwidthMap)
 				for _, ips := range bandwidthList {
-					fmt.Println("IP:", ips.Key, "OUT:", ips.Value.outBytes, "IN:", ips.Value.inBytes, "TOTAL:", ips.Value.totalBytes)
+					record := geoIP(ips.Key)
+					fmt.Printf("ip: %-16s output: %-2.2fMB input: %-2.2fMB total: %-2.2fMB country: %-8s\n", ips.Key, float32(ips.Value.outBytes)/8388608, float32(ips.Value.inBytes)/8388608, float32(ips.Value.totalBytes)/8388608, record.Country.Names["en"])
+					// fmt.Println("IP:", ips.Key, "OUT BYTES:", ips.Value.outBytes, "IN BYTES:", ips.Value.inBytes, "TOTAL BYTES:", ips.Value.totalBytes, "COUNTRY:", record.Country.Names["en"])
 				}
 				packetCount = 0
 			}
+			// fmt.Printf("\b\b\b\b\b\b")
+			// fmt.Printf("%d/100", packetCount)
 			if packetCount%10 == 0 {
 				fmt.Print(".")
 			}
@@ -145,4 +151,14 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 	}
 	sort.Sort(sort.Reverse(pl))
 	return pl
+}
+
+func geoIP(ipStr string) *geoip2.Country {
+	db, err := geoip2.Open("GeoLite2-Country.mmdb")
+	handleErr(err)
+	// defer db.Close()
+	ip := net.ParseIP(ipStr)
+	record, err := db.Country(ip)
+	handleErr(err)
+	return record
 }
