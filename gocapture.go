@@ -81,7 +81,7 @@ func geoIPCity(ipStr string) *geoip2.City {
 
 // 开始前配置
 func setOption(option *Option) {
-	var selectIndex, flushInterval int
+	var selectIndex, flushInterval, ifWritePcap int
 	devices, err := pcap.FindAllDevs()
 	handleErr(err)
 	// Print device information
@@ -101,6 +101,8 @@ func setOption(option *Option) {
 	fmt.Scanln(&selectIndex)
 	fmt.Println("请选择多少个包刷新一次流量统计")
 	fmt.Scanln(&flushInterval)
+	fmt.Println("是否写入pcap文件(packet.pcap) 1.是 2.否")
+	fmt.Scanln(&ifWritePcap)
 	option.deviceName = devices[selectIndex].Name
 	option.flushInterval = flushInterval
 	clearScreen()
@@ -114,17 +116,22 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 	handle, err := pcap.OpenLive(deviceName, 1024, false, -1)
 	handleErr(err)
 	defer handle.Close()
-	f, _ := os.Create("test.pcap")
-	w := pcapgo.NewWriter(f)
-	w.WriteFileHeader(1024, layers.LinkTypeEthernet)
-	defer f.Close()
+	var w *pcapgo.Writer
+	if option.ifWritePcap == 1 {
+		f, _ := os.Create("packet.pcap")
+		w = pcapgo.NewWriter(f)
+		w.WriteFileHeader(1024, layers.LinkTypeEthernet)
+		defer f.Close()
+	}
 	packetCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
 		// Process packet here
 		packetCount++
 		// 是否要写到文件中去
-		w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+		if option.ifWritePcap == 1 {
+			w.WritePacket(packet.Metadata().CaptureInfo, packet.Data())
+		}
 		// 是否实时打印包
 		// log.Println(packet.NetworkLayer().NetworkFlow().Dst().String())
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
@@ -140,7 +147,6 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				// 还没有对应ip的记录时
 				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length}
 			}
-
 			// 然后是 dst部分
 			if ipBandwithInfo, exist := bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]; exist {
 				// 已经有记录时
@@ -196,6 +202,11 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 			} else {
 				IPLocation = fmt.Sprintf("%s - %s (%f,%f)", record.Country.Names["en"], record.City.Names["en"], record.Location.Longitude, record.Location.Latitude)
 			}
+			// 添加geoip信息到List中
+			ips.Value.City = record.City.Names["en"]
+			ips.Value.Country = record.Country.Names["en"]
+			ips.Value.Longitude = record.Location.Longitude
+			ips.Value.Latitude = record.Location.Latitude
 		} else if geoType == "country" {
 			record := geoIPCountry(ips.Key)
 			if record.Country.Names["en"] == "" {

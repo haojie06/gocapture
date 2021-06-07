@@ -1,16 +1,20 @@
 package main
 
 type IPStruct struct {
-	InBytes    int `json:"inbytes"`
-	OutBytes   int `json:"outbytes"`
-	TotalBytes int `json:"totalbytes"`
+	InBytes    int     `json:"inbytes"`
+	OutBytes   int     `json:"outbytes"`
+	TotalBytes int     `json:"totalbytes"`
+	Country    string  `json:"country"`
+	City       string  `json:"city"`
+	Longitude  float64 `json:"longitude"`
+	Latitude   float64 `json:"latitude"`
 }
 
 // 配置选项
 type Option struct {
 	deviceName      string
 	flushInterval   int
-	ifWritePcap     bool
+	ifWritePcap     int
 	ifReverseResult bool
 	pcapFilename    string
 }
