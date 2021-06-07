@@ -1,56 +1,49 @@
 // var myChart = echarts.init(document.getElementById('map'))
 // 从服务器获取数据，测试用
-const getBandwidthData = async () => {
+let coordinatePoint = []
+let lineData = []
+
+const getData = async () => {
+  coordinatePoint = []
+  lineData = []
+  //如何动态修改这个url？
   let response = await fetch('http://localhost:8080/json')
+  let jsonData
   if (response.ok) {
     // let jsonResult = response
-    let jsonData = await response.json()
-    return jsonData
+    jsonData = await response.json()
   } else {
     console.log(response.status + '失败')
-    return [{}]
+    jsonData = Promise.reject('failed')
   }
-}
-let coordinatePoint = []
-let lineData = [
-  {
-    fromName: 'Wuhan',
-    toName: 'Singapore',
-    coords: [
-      [114.2662, 30.5851],
-      [103.8554, 1.3036],
-    ],
-  },
-]
-const start = async () => {
-  let chart = echarts.init(document.getElementById('map'))
   // 坐标点
-  let bandwidthData = await getBandwidthData()
   // console.log(JSON.stringify(bandwidthData))
   // console.log(bandwidthData)
   // 之后需要考虑时间戳，以及创建一个map，记录到同一个地点的多个连接（多个ip归属于一个地方）
-  let now = new Date()
-  let cmpTime = now.setMinutes(now.getMinutes() - 1)
-  for (let data of bandwidthData) {
-    let activeTime = Date.parse(data.value.lastactive)
-    if activeTime > cmpTime {
-      coordinatePoint.push({
-      name: data.value.city,
-      value: [data.value.longitude, data.value.latitude],
-    })
-  }
-}
   //起点应该都是固定的...但是考虑到获取到的可能是局域网ip，所以暂时通过手动设置经纬度来设置
   let startPos = [114.2662, 30.5851]
-  let startName = 'wuhan'
-  for (let data of bandwidthData) {
-    lineData.push({
-      fromName: startName,
-      toName: data.value.city,
-      coords: [startPos, [data.value.longitude, data.value.latitude]],
-    })
-  }
+  let startName = 'China Wuhan'
+  let now = Date.now()
+  let cmpTime = now - 20 * 1000
+  for (let data of jsonData) {
+    let activeTime = Date.parse(data.value.lastactive)
+    if (activeTime > cmpTime) {
+      coordinatePoint.push({
+        name: data.value.city,
+        value: [data.value.longitude, data.value.latitude],
+      })
 
+      lineData.push({
+        fromName: startName,
+        toName: data.value.country + ' ' + data.value.city,
+        coords: [startPos, [data.value.longitude, data.value.latitude]],
+      })
+    }
+  }
+}
+
+const start = async () => {
+  let chart = echarts.init(document.getElementById('map'))
   let nameMap = {
     Afghanistan: '阿富汗',
     Albania: '阿尔巴尼亚',
@@ -336,7 +329,16 @@ const start = async () => {
       },
     ],
   }
-  chart.setOption(option)
+
+  // chart.setOption(option)
+  // 定时更新
+  setInterval(async () => {
+    await getData()
+    option.series[0].data = coordinatePoint
+    option.series[1].data = lineData
+    console.log('clear', option.series[0].data)
+    chart.setOption(option)
+  }, 2000)
 }
 
 start()
