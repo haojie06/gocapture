@@ -46,14 +46,14 @@ func (p PairList) Less(i, j int) bool { return p[i].Value.totalBytes < p[j].Valu
 type PairList []Pair
 
 // 需要以管理员权限运行 以及安装 winpcap或者libpcap
-func main() {
+func gocapture(bandwidthListChan chan string) {
 	var option Option
 	// 流量统计 ip map 注意是一个指针map，可以直接修改其中元素
 	bandwidthMap := make(map[string]*IPStruct)
 	// 选择进行抓包的网卡、刷新频率等
 	setOption(&option)
 	// 抓包并打印
-	capturePackets(bandwidthMap, option)
+	capturePackets(bandwidthMap, option, bandwidthListChan)
 }
 
 func handleErr(err error) {
@@ -134,7 +134,7 @@ func setOption(option *Option) {
 	fmt.Println("开始进行抓包")
 }
 
-func capturePackets(bandwidthMap map[string]*IPStruct, option Option) {
+func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthListChan chan string) {
 	deviceName := option.deviceName
 	flushInterval := option.flushInterval
 	// timeout表示多久刷新一次数据包，负数表示立即刷新
@@ -179,7 +179,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option) {
 			}
 			// 每十个包打印一次统计
 			if packetCount >= flushInterval {
-				printStatistic(bandwidthMap, "city")
+				printStatistic(bandwidthMap, "city", bandwidthListChan)
 				packetCount = 0
 			}
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
@@ -205,11 +205,12 @@ func dataTransfer(byteCount int) string {
 }
 
 // 打印统计信息
-func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
+func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthListChan chan string) {
 	clearScreen()
 	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
 	bandwidthList := sortIPs(bandwidthMap)
+	// bandwidthListChan <- bandwidthList
 	listLen := len(bandwidthList)
 	for index, ips := range bandwidthList {
 		//当前使用城市IP库 (影响Location字段)
@@ -236,4 +237,5 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
 		}
 	}
 	fmt.Println(drawStr)
+	bandwidthListChan <- drawStr
 }

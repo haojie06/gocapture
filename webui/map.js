@@ -279,6 +279,7 @@ let option = {
   },
   geo: {
     map: 'world',
+    nameMap: nameMap,
   },
   series: [
     // {
