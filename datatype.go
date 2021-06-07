@@ -1,13 +1,16 @@
 package main
 
+import "time"
+
 type IPStruct struct {
-	InBytes    int     `json:"inbytes"`
-	OutBytes   int     `json:"outbytes"`
-	TotalBytes int     `json:"totalbytes"`
-	Country    string  `json:"country"`
-	City       string  `json:"city"`
-	Longitude  float64 `json:"longitude"`
-	Latitude   float64 `json:"latitude"`
+	InBytes    int       `json:"inbytes"`
+	OutBytes   int       `json:"outbytes"`
+	TotalBytes int       `json:"totalbytes"`
+	Country    string    `json:"country"`
+	City       string    `json:"city"`
+	Longitude  float64   `json:"longitude"`
+	Latitude   float64   `json:"latitude"`
+	LastActive time.Time `json:"lastactive"`
 }
 
 // 配置选项

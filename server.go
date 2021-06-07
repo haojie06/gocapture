@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 )
 
 var dataChan chan string
@@ -41,7 +42,8 @@ func strHandler(w http.ResponseWriter, req *http.Request) {
 
 func jsonHandler(w http.ResponseWriter, req *http.Request) {
 	allowCORS(w)
-	dataChan <- "getData"
+	param := req.URL.Path[1:]
+	dataChan <- "getData/" + param
 	data := <-dataChan
 	fmt.Fprintf(w, data)
 }
@@ -58,10 +60,12 @@ func getData(dataChan chan string) {
 		case signal := <-dataChan:
 			{
 				// 接收到信号返回本地变量
-				if signal == "getStr" {
+				signals := strings.Split(signal, "/")
+				if signals[0] == "getStr" {
 					dataChan <- bandwidthData.bandwidthStatisticStr
-				} else if signal == "getData" {
+				} else if signals[0] == "getData" {
 					// JSON形式返回
+					// 对时间参数进行筛选(仅对JSON请求有效)
 					jsonData, err := json.Marshal(bandwidthData.bandwidthList)
 					handleErr(err)
 					dataChan <- string(jsonData)

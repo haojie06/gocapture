@@ -143,18 +143,20 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				// 已经有记录时
 				ipBandwithInfo.OutBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
+				ipBandwithInfo.LastActive = packet.Metadata().Timestamp
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length}
+				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
 			}
 			// 然后是 dst部分
 			if ipBandwithInfo, exist := bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]; exist {
 				// 已经有记录时
 				ipBandwithInfo.InBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
+				ipBandwithInfo.LastActive = packet.Metadata().Timestamp
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length}
+				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
 			}
 			// 每十个包打印一次统计
 			if packetCount >= flushInterval {

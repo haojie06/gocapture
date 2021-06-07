@@ -29,13 +29,17 @@ const start = async () => {
   // console.log(JSON.stringify(bandwidthData))
   // console.log(bandwidthData)
   // 之后需要考虑时间戳，以及创建一个map，记录到同一个地点的多个连接（多个ip归属于一个地方）
+  let now = new Date()
+  let cmpTime = now.setMinutes(now.getMinutes() - 1)
   for (let data of bandwidthData) {
-    console.log(data)
-    coordinatePoint.push({
+    let activeTime = Date.parse(data.value.lastactive)
+    if activeTime > cmpTime {
+      coordinatePoint.push({
       name: data.value.city,
       value: [data.value.longitude, data.value.latitude],
     })
   }
+}
   //起点应该都是固定的...但是考虑到获取到的可能是局域网ip，所以暂时通过手动设置经纬度来设置
   let startPos = [114.2662, 30.5851]
   let startName = 'wuhan'
