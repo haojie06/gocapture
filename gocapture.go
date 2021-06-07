@@ -86,12 +86,22 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 	return pl
 }
 
-func geoIP(ipStr string) *geoip2.Country {
+func geoIPCountry(ipStr string) *geoip2.Country {
 	db, err := geoip2.Open("GeoLite2-Country.mmdb")
 	handleErr(err)
 	// defer db.Close()
 	ip := net.ParseIP(ipStr)
 	record, err := db.Country(ip)
+	handleErr(err)
+	return record
+}
+
+func geoIPCity(ipStr string) *geoip2.City {
+	db, err := geoip2.Open("GeoLite2-City.mmdb")
+	handleErr(err)
+	// defer db.Close()
+	ip := net.ParseIP(ipStr)
+	record, err := db.City(ip)
 	handleErr(err)
 	return record
 }
@@ -169,31 +179,10 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option) {
 			}
 			// 每十个包打印一次统计
 			if packetCount >= flushInterval {
-				clearScreen()
-				fmt.Println("MAP LENGTH:", len(bandwidthMap))
-				bandwidthList := sortIPs(bandwidthMap)
-				drawStr := ""
-				listLen := len(bandwidthList)
-				for index, ips := range bandwidthList {
-					record := geoIP(ips.Key)
-					if index == listLen-1 {
-						if record.Country.Names["en"] == "" {
-							drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s Localhost", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes))
-						} else {
-							drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s country: %-8s(localip)", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), record.Country.Names["en"])
-						}
-
-					} else {
-						drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s country: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), record.Country.Names["en"])
-					}
-				}
-				fmt.Println(drawStr)
+				printStatistic(bandwidthMap, "city")
 				packetCount = 0
 			}
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
-			// if packetCount%10 == 0 {
-			// 	fmt.Print(".")
-			// }
 		}
 	}
 }
@@ -213,4 +202,38 @@ func dataTransfer(byteCount int) string {
 		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 4)*8)) + "GB"
 	}
 	return formatBandwidth
+}
+
+// 打印统计信息
+func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
+	clearScreen()
+	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
+	// 通过Slice对Map进行排序
+	bandwidthList := sortIPs(bandwidthMap)
+	listLen := len(bandwidthList)
+	for index, ips := range bandwidthList {
+		//当前使用城市IP库 (影响Location字段)
+		var IPLocation string
+		if geoType == "city" {
+			record := geoIPCity(ips.Key)
+			if record.Country.Names["en"] == "" {
+				IPLocation = "PrivateIP"
+			} else {
+				IPLocation = fmt.Sprintf("%s - %s (%f,%f)", record.Country.Names["en"], record.City.Names["en"], record.Location.Longitude, record.Location.Latitude)
+			}
+		} else if geoType == "country" {
+			record := geoIPCountry(ips.Key)
+			if record.Country.Names["en"] == "" {
+				IPLocation = "PrivateIP"
+			} else {
+				IPLocation = fmt.Sprintf("%s", record.Country.Names["en"])
+			}
+		}
+		if index == listLen-1 {
+			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), IPLocation)
+		} else {
+			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), IPLocation)
+		}
+	}
+	fmt.Println(drawStr)
 }
