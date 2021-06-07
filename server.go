@@ -10,7 +10,9 @@ var dataChan chan string
 
 func captureHandler(w http.ResponseWriter, req *http.Request) {
 	// 向getData协程发送信号
+
 	param := req.URL.Path[1:]
+	fmt.Println("接收到请求", param)
 	if param == "str" {
 		dataChan <- "getStr"
 	} else if param == "json" {
