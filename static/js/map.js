@@ -24,7 +24,7 @@ const getData = async () => {
   let startPos = [114.2662, 30.5851]
   let startName = 'China Wuhan'
   let now = Date.now()
-  let cmpTime = now - 20 * 1000
+  let cmpTime = now - 10 * 1000
   for (let data of jsonData) {
     let activeTime = Date.parse(data.value.lastactive)
     if (activeTime > cmpTime) {
@@ -330,15 +330,19 @@ const start = async () => {
     ],
   }
 
-  // chart.setOption(option)
+  chart.setOption(option)
   // 定时更新
-  setInterval(async () => {
+  const instantRun = async () => {
     await getData()
-    option.series[0].data = coordinatePoint
     option.series[1].data = lineData
-    console.log('clear', option.series[0].data)
+    option.series[0].data = coordinatePoint
+    console.log('update', option.series[0].data)
     chart.setOption(option)
-  }, 2000)
+  }
+  instantRun()
+  setInterval(async () => {
+    await instantRun()
+  }, 5000)
 }
 
 start()
