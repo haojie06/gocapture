@@ -170,15 +170,15 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 func dataTransfer(byteCount int) string {
 	var formatBandwidth string
 	if byteCount < 1024 {
-		formatBandwidth = strconv.Itoa(byteCount) + "b"
+		formatBandwidth = strconv.Itoa(byteCount) + "B"
 	} else if byteCount < 1048576 {
-		formatBandwidth = strconv.Itoa(byteCount/1024) + "Kb"
+		formatBandwidth = strconv.Itoa(byteCount/1024) + "KB"
 	} else if byteCount < 1073741824 {
-		formatBandwidth = strconv.Itoa(byteCount/1048576) + "Mb"
+		formatBandwidth = strconv.Itoa(byteCount/1048576) + "MB"
 	} else if byteCount < int(math.Pow(1024, 4)) {
-		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 3)*8)) + "MB"
+		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 3))) + "GB"
 	} else {
-		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 4)*8)) + "GB"
+		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 4))) + "TB"
 	}
 	return formatBandwidth
 }
