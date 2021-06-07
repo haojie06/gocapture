@@ -18,42 +18,15 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
-type IPStruct struct {
-	inBytes    int
-	outBytes   int
-	totalBytes int
-}
-
-// 配置选项
-type Option struct {
-	deviceName      string
-	flushInterval   int
-	ifWritePcap     bool
-	ifReverseResult bool
-	pcapFilename    string
-}
-
-// 用于实现map的排序输出(先转为slice，并使用自定义个排序接口)
-type Pair struct {
-	Key   string
-	Value *IPStruct
-}
-
-func (p PairList) Len() int           { return len(p) }
-func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p PairList) Less(i, j int) bool { return p[i].Value.totalBytes < p[j].Value.totalBytes }
-
-type PairList []Pair
-
 // 需要以管理员权限运行 以及安装 winpcap或者libpcap
-func gocapture(bandwidthListChan chan string) {
+func gocapture(bandwidthDataChan chan BandwidthData) {
 	var option Option
 	// 流量统计 ip map 注意是一个指针map，可以直接修改其中元素
 	bandwidthMap := make(map[string]*IPStruct)
 	// 选择进行抓包的网卡、刷新频率等
 	setOption(&option)
 	// 抓包并打印
-	capturePackets(bandwidthMap, option, bandwidthListChan)
+	capturePackets(bandwidthMap, option, bandwidthDataChan)
 }
 
 func handleErr(err error) {
@@ -134,7 +107,7 @@ func setOption(option *Option) {
 	fmt.Println("开始进行抓包")
 }
 
-func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthListChan chan string) {
+func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthDataChan chan BandwidthData) {
 	deviceName := option.deviceName
 	flushInterval := option.flushInterval
 	// timeout表示多久刷新一次数据包，负数表示立即刷新
@@ -161,25 +134,25 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthL
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
 				// 已经有记录时
-				ipBandwithInfo.outBytes += packet.Metadata().Length
-				ipBandwithInfo.totalBytes = ipBandwithInfo.inBytes + ipBandwithInfo.outBytes
+				ipBandwithInfo.OutBytes += packet.Metadata().Length
+				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{outBytes: packet.Metadata().Length, inBytes: 0, totalBytes: packet.Metadata().Length}
+				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length}
 			}
 
 			// 然后是 dst部分
 			if ipBandwithInfo, exist := bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]; exist {
 				// 已经有记录时
-				ipBandwithInfo.inBytes += packet.Metadata().Length
-				ipBandwithInfo.totalBytes = ipBandwithInfo.inBytes + ipBandwithInfo.outBytes
+				ipBandwithInfo.InBytes += packet.Metadata().Length
+				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{outBytes: 0, inBytes: packet.Metadata().Length, totalBytes: packet.Metadata().Length}
+				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length}
 			}
 			// 每十个包打印一次统计
 			if packetCount >= flushInterval {
-				printStatistic(bandwidthMap, "city", bandwidthListChan)
+				printStatistic(bandwidthMap, "city", bandwidthDataChan)
 				packetCount = 0
 			}
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
@@ -204,8 +177,9 @@ func dataTransfer(byteCount int) string {
 	return formatBandwidth
 }
 
-// 打印统计信息
-func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthListChan chan string) {
+// 打印统计信息 (这个传参嵌套太多层了)
+func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData) {
+	var bandwidthData BandwidthData
 	clearScreen()
 	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
@@ -231,11 +205,13 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 			}
 		}
 		if index == listLen-1 {
-			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), IPLocation)
+			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
 		} else {
-			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.outBytes), dataTransfer(ips.Value.inBytes), dataTransfer(ips.Value.totalBytes), IPLocation)
+			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
 		}
 	}
 	fmt.Println(drawStr)
-	bandwidthListChan <- drawStr
+	bandwidthData.bandwidthStatisticStr = drawStr
+	bandwidthData.bandwidthList = bandwidthList
+	bandwidthDataChan <- bandwidthData
 }
