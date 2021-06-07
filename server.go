@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -12,7 +13,7 @@ func captureHandler(w http.ResponseWriter, req *http.Request) {
 	// 向getData协程发送信号
 
 	param := req.URL.Path[1:]
-	fmt.Println("接收到请求", param)
+	log.Println("接收到请求", param)
 	if param == "str" {
 		dataChan <- "getStr"
 	} else if param == "json" {
@@ -25,10 +26,13 @@ func captureHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	var listenPort string
+	fmt.Println("请输入web服务器监听端口")
+	fmt.Scanln(&listenPort)
 	dataChan = make(chan string)
 	go getData(dataChan)
 	http.HandleFunc("/", captureHandler)
-	err := http.ListenAndServe("localhost:8080", nil)
+	err := http.ListenAndServe(":"+listenPort, nil)
 	handleErr(err)
 }
 
