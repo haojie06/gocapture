@@ -7,8 +7,6 @@ let linesData = []
 let locationMap = new HashMap()
 let ipMap = new HashMap()
 //起点应该都是固定的...但是考虑到获取到的可能是局域网ip，所以暂时通过手动设置经纬度来设置
-let startPos = [114.2662, 30.5851]
-let startName = 'Wuhan'
 // 流量转为更加易读的方式
 const simplifyBandwidthOutput = (bytes) => {
   let formatBandwidth
@@ -39,7 +37,7 @@ const getData = async () => {
   coordPointData = [{ name: startName, value: startPos }]
   linesData = []
   //如何动态修改这个url？
-  let response = await fetch('http://localhost:8080/json')
+  let response = await fetch(fetchUrl + '/json')
   let jsonData
   if (response.ok) {
     // let jsonResult = response

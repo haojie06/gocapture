@@ -1,6 +1,6 @@
 const getStr = async () => {
   console.log('update')
-  let response = await fetch('http://localhost:8080/str')
+  let response = await fetch(fetchUrl + '/str')
   let strData
   if (response.ok) {
     // let jsonResult = response
