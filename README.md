@@ -1,6 +1,6 @@
 # gocapture
 
-抓包以及流量统计,并在 web 进行可视化 [demo](http://con.ifine.eu:8080/)
+抓包以及流量统计,并在 web 进行可视化 [demo](http://con.ifine.eu:8080/)  *另外有cli分支，提供单文件打包的纯命令行版本抓包与流量统计工具*
 
 运行前安装 winpcap（windows）或者 libpcap-dev（linux）
 
