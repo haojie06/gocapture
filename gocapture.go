@@ -193,7 +193,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 	// 通过Slice对Map进行排序
 	bandwidthList := sortIPs(bandwidthMap)
 	// bandwidthListChan <- bandwidthList
-	listLen := len(bandwidthList)
+	// listLen := len(bandwidthList)
 	for index, ips := range bandwidthList {
 		//当前使用城市IP库 (影响Location字段)
 		var IPLocation string
@@ -217,7 +217,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 				IPLocation = fmt.Sprintf("%s", record.Country.Names["en"])
 			}
 		}
-		if index == listLen-1 {
+		if index == 0 {
 			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
 		} else {
 			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
