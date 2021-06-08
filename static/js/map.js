@@ -1,6 +1,7 @@
 // var myChart = echarts.init(document.getElementById('map'))
 // 从服务器获取数据，测试用
 // 创建map 城市或者国家（查询不到具体城市的时候作为键，值为一系列的ipstruct）
+let chart = echarts.init(document.getElementById('map'))
 let coordPointData = []
 let linesData = []
 let locationMap = new HashMap()
@@ -113,8 +114,6 @@ const getData = async () => {
 }
 
 const start = async () => {
-  let chart = echarts.init(document.getElementById('map'))
-
   let option = {
     // backgroundColor: '#1b1b1b',
     // color: ['gold', 'aqua', 'lime'],
@@ -129,15 +128,7 @@ const start = async () => {
     // 国家的tooltip
     tooltip: {
       trigger: 'item',
-      formatter: function (params, ticket, callback) {
-        /*$.get('detail?name=' + params.name, function (content) {
-              callback(ticket, toHTML(content));
-          });*/
-        var tips = '<ul style="list-style: none">'
-        tips += '<li>country：' + params.name + '</li>'
-        tips += '</ul>'
-        return tips
-      },
+      formatter: function (params, ticket, callback) {},
     },
     toolbox: {
       show: true,
@@ -179,6 +170,19 @@ const start = async () => {
         animationDelay: 500,
         symbolSize: 7,
         data: [],
+        // markPoint: {
+        //   zlevel: 6,
+        //   symbolSize: 20,
+        //   itemStyle: {
+        //     color: 'azure',
+        //   },
+        //   data: [
+        //     {
+        //       name: startName,
+        //       coord: startPos,
+        //     },
+        //   ],
+        // },
         tooltip: {
           trigger: 'item',
           position: 'inside',
@@ -200,7 +204,6 @@ const start = async () => {
                   pair.value.value.inbytes
                 )}</p>`
               } else {
-                console.log('过期')
               }
             }
             // tips += '</ul>'
@@ -254,9 +257,9 @@ const start = async () => {
     await getData()
     option.series[1].data = linesData
     option.series[0].data = coordPointData
-    linesData.forEach((item, index) => {
-      console.log(index + ':' + item.toName)
-    })
+    // linesData.forEach((item, index) => {
+    //   console.log(index + ':' + item.toName)
+    // })
     // console.log('update', option.series[0].data)
     chart.setOption(option)
   }
@@ -268,9 +271,15 @@ const start = async () => {
 
 // 保证缩放的时候，散点图和线不会错位
 window.onresize = () => {
-  chart.clear()
   chart.setOption(option)
   chart.resize()
 }
 
+chart.on('georoam', (params) => {
+  // console.log(params)
+  if (Reflect.has(params, 'dx')) return //如果是拖拽事件则退出
+  let newOption = { ...chart.getOption() }
+  // console.log(newOption)
+  option = newOption
+})
 start()
