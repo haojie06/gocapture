@@ -18,10 +18,10 @@ const simplifyBandwidthOutput = (bytes) => {
     formatBandwidth = (bytes / 1024).toFixed(2) + 'KB'
   } else if (bytes < 1073741824) {
     formatBandwidth = (bytes / 1048576).toFixed(2) + 'MB'
-  } else if (bytes < math.Pow(1024, 4)) {
-    formatBandwidth = (bytes / math.Pow(1024, 3)).toFixed(2) + 'GB'
+  } else if (bytes < Math.pow(1024, 4)) {
+    formatBandwidth = (bytes / Math.pow(1024, 3)).toFixed(2) + 'GB'
   } else {
-    formatBandwidth = (bytes / math.Pow(1024, 4)).toFixed(2) + 'TB'
+    formatBandwidth = (bytes / Math.pow(1024, 4)).toFixed(2) + 'TB'
   }
   return formatBandwidth
 }
@@ -30,9 +30,9 @@ const judgeIfActive = (timeStamp, difTime) => {
   // 10s内活跃连接
   let cmpTime = now - difTime
   let lastActiveTime = Date.parse(timeStamp)
-  return lastActiveTime > cmpTime ? true : false
+  return lastActiveTime > cmpTime
 }
-const findAndDelInactive = () => {}
+
 const getData = async () => {
   coordPointData = []
   linesData = []
@@ -80,7 +80,7 @@ const getData = async () => {
   for (let locationPair of locationMap) {
     let location = locationPair.key
     let country
-    // 如果一个location所有的ip 连接数据都过期了，那么不显示
+    // 如果一个location所有的ip 连接数据都过期了，那么不显示 （只要有一个没过期的就可以显示
     // 10s内活跃连接
     let locationValid = false
     let locationLongitude, locationLatitude
@@ -92,8 +92,11 @@ const getData = async () => {
         locationLongitude = ipPair.value.value.longitude
         locationLatitude = ipPair.value.value.latitude
         // 放入显示列表中
+      } else {
+        // console.log('发现过期')
       }
     }
+    // 只有当前地点至少有一条一分钟内活跃过的连接，才通过图形进行显示
     if (locationValid) {
       coordPointData.push({
         name: location,
@@ -106,7 +109,7 @@ const getData = async () => {
         coords: [startPos, [locationLongitude, locationLatitude]],
       })
     } else {
-      // 出现过期城市
+      // 出现过期城市 清除
     }
   }
   // 排序一次能否减少dataIndex变化-但是无法彻底解决问题 （或者画线但是不显示？
@@ -145,6 +148,7 @@ const start = async () => {
     },
     geo: {
       roam: true,
+      zoom: 1.25,
       map: 'world',
       hoverable: false,
       silent: true,
@@ -187,14 +191,12 @@ const start = async () => {
           trigger: 'item',
           position: 'inside',
           formatter: (params, ticket, callback) => {
-            /*$.get('detail?name=' + params.name, function (content) {
-              callback(ticket, toHTML(content));
-          });*/
             // 展示一个地区的所有连接 以及流量 1min内活跃
-            let ipMap = locationMap.get(params.name)
+            // 获取一个地区所有的ip-data map
+            let lIPMap = locationMap.get(params.name)
             let tips = `<p>${params.name}</p>`
             // tips += '<ul style="list-style: none">'
-            for (let pair of ipMap) {
+            for (let pair of lIPMap) {
               if ((judgeIfActive(pair.value.value.lastactive), 60 * 1000)) {
                 tips += `<p>ip:${pair.key} totalbytes:${simplifyBandwidthOutput(
                   pair.value.value.totalbytes
@@ -203,7 +205,6 @@ const start = async () => {
                 )} download:${simplifyBandwidthOutput(
                   pair.value.value.inbytes
                 )}</p>`
-              } else {
               }
             }
             // tips += '</ul>'
@@ -228,7 +229,22 @@ const start = async () => {
           formatter: (params, ticket, callback) => {
             // console.log(params)
             let tip = `<p>${params.data.fromName}->${params.data.toName} ${params.dataIndex}</p>`
-            // 获取同一地点下的所有(活跃)ip
+            let ipMap = locationMap.get(params.data.toName)
+            let totalIn = 0,
+              totalOut = 0,
+              totalSum = 0
+
+            for (let pair of ipMap) {
+              // 全时间段的流量
+              totalIn += Number(pair.value.value.inbytes)
+              totalOut += Number(pair.value.value.outbytes)
+            }
+            totalSum = totalIn + totalOut
+            totalIn = simplifyBandwidthOutput(totalIn)
+            totalOut = simplifyBandwidthOutput(totalOut)
+            totalSum = simplifyBandwidthOutput(totalSum)
+            tip += `<p>upload:${totalOut} download:${totalIn} total:${totalSum}</p>`
+            // 连线显示到该地的流量统计(1分钟内的活跃ip 以及总共统计)
             return tip
           },
         },
@@ -271,7 +287,7 @@ const start = async () => {
 
 // 保证缩放的时候，散点图和线不会错位
 window.onresize = () => {
-  chart.setOption(option)
+  chart.setOption(chart.getOption())
   chart.resize()
 }
 

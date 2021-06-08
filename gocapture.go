@@ -54,8 +54,8 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 		pl[i] = Pair{k, v}
 		i++
 	}
-	// sort.Sort(sort.Reverse(pl))
-	sort.Sort(pl)
+	sort.Sort(sort.Reverse(pl))
+	// sort.Sort(pl)
 	return pl
 }
 

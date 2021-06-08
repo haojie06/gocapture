@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <!-- 引入 ECharts 文件 -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.1.1/dist/echarts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hashmap@2.4.0/hashmap.js"></script>
     <script src="/static/js/world.js"></script>
 </head>
+
 <body>
     <!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
-    <div id="map" style="width: 100%;height:600px;"></div>
+    <div id="map" style="width: 60%; height: 500px; float: left;"></div>
+    <div style="float: left; width: 38%; height: 500px; margin-left: 1rem;">
+        <textarea id="stats" style="overflow: scroll; height: 100%; width: 100%;" wrap="off" disabled></textarea>
+    </div>
     <script src="/static/js/map.js"></script>
+    <script src="/static/js/data.js"></script>
 </body>
+
 </html>
