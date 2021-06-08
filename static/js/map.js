@@ -9,7 +9,28 @@ let ipMap = new HashMap()
 let startPos = [114.2662, 30.5851]
 let startName = 'Wuhan'
 // 流量转为更加易读的方式
-const simplifyBandwidthOutput = (bytes) => {}
+const simplifyBandwidthOutput = (bytes) => {
+  let formatBandwidth
+  if (bytes < 1024) {
+    formatBandwidth = bytes + 'B'
+  } else if (bytes < 1048576) {
+    formatBandwidth = (bytes / 1024).toFixed(2) + 'KB'
+  } else if (bytes < 1073741824) {
+    formatBandwidth = (bytes / 1048576).toFixed(2) + 'MB'
+  } else if (bytes < math.Pow(1024, 4)) {
+    formatBandwidth = (bytes / math.Pow(1024, 3)).toFixed(2) + 'GB'
+  } else {
+    formatBandwidth = (bytes / math.Pow(1024, 4)).toFixed(2) + 'TB'
+  }
+  return formatBandwidth
+}
+const judgeIfActive = (timeStamp, difTime) => {
+  let now = Date.now()
+  // 10s内活跃连接
+  let cmpTime = now - difTime
+  let lastActiveTime = Date.parse(timeStamp)
+  return lastActiveTime > cmpTime ? true : false
+}
 const findAndDelInactive = () => {}
 const getData = async () => {
   coordPointData = []
@@ -59,14 +80,11 @@ const getData = async () => {
     let location = locationPair.key
     let country
     // 如果一个location所有的ip 连接数据都过期了，那么不显示
-    let now = Date.now()
     // 10s内活跃连接
-    let cmpTime = now - 60 * 1000
     let locationValid = false
     let locationLongitude, locationLatitude
     for (let ipPair of locationPair.value) {
-      let activeTime = Date.parse(ipPair.value.value.lastactive)
-      if (activeTime > cmpTime) {
+      if (judgeIfActive(ipPair.value.value.lastactive, 60 * 1000)) {
         locationValid = true
         // 是否考虑建立城市-国家map？
         country = ipPair.value.value.country
@@ -116,9 +134,7 @@ const start = async () => {
               callback(ticket, toHTML(content));
           });*/
         var tips = '<ul style="list-style: none">'
-        tips += '<li>行政区划：' + params.name + '</li>'
-        tips += '<li>历史已报件：1000个</li>'
-        tips += '<li>最近上报时间：' + new Date().toLocaleTimeString() + '</li>'
+        tips += '<li>country：' + params.name + '</li>'
         tips += '</ul>'
         return tips
       },
@@ -165,16 +181,27 @@ const start = async () => {
         data: [],
         tooltip: {
           trigger: 'item',
+          position: 'inside',
           formatter: (params, ticket, callback) => {
             /*$.get('detail?name=' + params.name, function (content) {
               callback(ticket, toHTML(content));
           });*/
-            // 展示一个地区的所有连接 以及流量 显示所有的ip，而非活跃ip
+            // 展示一个地区的所有连接 以及流量 1min内活跃
             let ipMap = locationMap.get(params.name)
             let tips = `<p>${params.name}</p>`
             // tips += '<ul style="list-style: none">'
             for (let pair of ipMap) {
-              tips += `<p>ip:${pair.key} totalbytes:${pair.value.value.totalbytes} upload:${pair.value.value.outbytes} download:${pair.value.value.inbytes}</p>`
+              if ((judgeIfActive(pair.value.value.lastactive), 60 * 1000)) {
+                tips += `<p>ip:${pair.key} totalbytes:${simplifyBandwidthOutput(
+                  pair.value.value.totalbytes
+                )} upload:${simplifyBandwidthOutput(
+                  pair.value.value.outbytes
+                )} download:${simplifyBandwidthOutput(
+                  pair.value.value.inbytes
+                )}</p>`
+              } else {
+                console.log('过期')
+              }
             }
             // tips += '</ul>'
             return tips
@@ -197,7 +224,7 @@ const start = async () => {
         tooltip: {
           formatter: (params, ticket, callback) => {
             // console.log(params)
-            let tip = `<p>${params.data.fromName}-${params.data.toName} ${params.dataIndex}</p>`
+            let tip = `<p>${params.data.fromName}->${params.data.toName} ${params.dataIndex}</p>`
             // 获取同一地点下的所有(活跃)ip
             return tip
           },
@@ -241,6 +268,8 @@ const start = async () => {
 
 // 保证缩放的时候，散点图和线不会错位
 window.onresize = () => {
+  chart.clear()
+  chart.setOption(option)
   chart.resize()
 }
 
