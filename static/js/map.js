@@ -41,14 +41,14 @@ const getData = async () => {
       if (locationIPMap === undefined) {
         locationIPMap = new HashMap()
       }
-      locationIPMap.set(data.value.ip, data)
+      locationIPMap.set(data.key, data)
       locationMap.set(data.value.country, locationIPMap)
     } else {
       let locationIPMap = locationMap.get(data.value.city)
       if (locationIPMap === undefined) {
         locationIPMap = new HashMap()
       }
-      locationIPMap.set(data.value.ip, data)
+      locationIPMap.set(data.key, data)
       locationMap.set(data.value.city, locationIPMap)
     }
   }
@@ -60,7 +60,7 @@ const getData = async () => {
     // 如果一个location所有的ip 连接数据都过期了，那么不显示
     let now = Date.now()
     // 10s内活跃连接
-    let cmpTime = now - 10 * 1000
+    let cmpTime = now - 60 * 1000
     let locationValid = false
     let locationLongitude, locationLatitude
     for (let ipPair of locationPair.value) {
@@ -108,6 +108,8 @@ const getData = async () => {
     // })
     // }
   }
+  // 排序一次能否减少dataIndex变化-但是无法彻底解决问题 （或者画线但是不显示？
+  linesData.sort((m, n) => m.toName - n.toName)
 }
 
 const start = async () => {
@@ -309,7 +311,7 @@ const start = async () => {
     // color: ['gold', 'aqua', 'lime'],
     title: {
       show: true,
-      text: '实时流量可视化 10s内活跃连接',
+      text: '实时流量可视化 60s内活跃连接',
       x: 'center',
       // textStyle: {
       //   color: '#fff',
@@ -375,7 +377,14 @@ const start = async () => {
             /*$.get('detail?name=' + params.name, function (content) {
               callback(ticket, toHTML(content));
           });*/
+            // 展示一个地区的所有连接 以及流量
+            let ipMap = locationMap.get(params.name)
             let tips = `<p>${params.name}</p>`
+            // tips += '<ul style="list-style: none">'
+            for (let pair of ipMap) {
+              tips += `<p>ip:${pair.key} totalbytes:${pair.value.value.totalbytes} upload:${pair.value.value.outbytes} download:${pair.value.value.inbytes}</p>`
+            }
+            // tips += '</ul>'
             return tips
           },
         },
@@ -385,6 +394,7 @@ const start = async () => {
         coordinateSystem: 'geo',
         zlevel: 2,
         symbolSize: 110,
+        // animationDurationUpdate: ,
         effect: {
           // 模拟效果路线特效
           show: true,
@@ -425,6 +435,9 @@ const start = async () => {
     await getData()
     option.series[1].data = linesData
     option.series[0].data = coordPointData
+    linesData.forEach((item, index) => {
+      console.log(index + ':' + item.toName)
+    })
     // console.log('update', option.series[0].data)
     chart.setOption(option)
   }
