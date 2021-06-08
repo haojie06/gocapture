@@ -7,11 +7,12 @@ let locationMap = new HashMap()
 let ipMap = new HashMap()
 //起点应该都是固定的...但是考虑到获取到的可能是局域网ip，所以暂时通过手动设置经纬度来设置
 let startPos = [114.2662, 30.5851]
-let startName = 'China Wuhan'
+let startName = 'Wuhan'
 
 const findAndDelInactive = () => {}
 const getData = async () => {
-  // 考虑不要清空而是删掉超时的？
+  coordPointData = []
+  linesData = []
   coordPointData = [{ name: startName, value: startPos }]
   linesData = []
   //如何动态修改这个url？
@@ -55,6 +56,7 @@ const getData = async () => {
   // 处理需要显示的数据 排除过期的
   for (let locationPair of locationMap) {
     let location = locationPair.key
+    let country
     // 如果一个location所有的ip 连接数据都过期了，那么不显示
     let now = Date.now()
     // 10s内活跃连接
@@ -65,6 +67,8 @@ const getData = async () => {
       let activeTime = Date.parse(ipPair.value.value.lastactive)
       if (activeTime > cmpTime) {
         locationValid = true
+        // 是否考虑建立城市-国家map？
+        country = ipPair.value.value.country
         locationLongitude = ipPair.value.value.longitude
         locationLatitude = ipPair.value.value.latitude
         // 放入显示列表中
@@ -75,11 +79,14 @@ const getData = async () => {
         name: location,
         value: [locationLongitude, locationLatitude],
       })
+      // GeoLite中的经纬度精度高了，导致同一城市可能出现不同的经纬度，造成重新画线
       linesData.push({
         fromName: startName,
         toName: location,
         coords: [startPos, [locationLongitude, locationLatitude]],
       })
+    } else {
+      // 出现过期城市
     }
     // 需要排除掉过期的点以及经纬度无法查询到的点 (还没有做完)
     // coordinatePoint.push({
@@ -308,19 +315,20 @@ const start = async () => {
       //   color: '#fff',
       // },
     },
+    // 国家的tooltip
     tooltip: {
-      // trigger: 'item',
-      // formatter: function (params, ticket, callback) {
-      //   /*$.get('detail?name=' + params.name, function (content) {
-      //         callback(ticket, toHTML(content));
-      //     });*/
-      //   var tips = '<ul style="list-style: none">'
-      //   tips += '<li>行政区划：' + params.name + '</li>'
-      //   tips += '<li>历史已报件：1000个</li>'
-      //   tips += '<li>最近上报时间：' + new Date().toLocaleTimeString() + '</li>'
-      //   tips += '</ul>'
-      //   return tips
-      // },
+      trigger: 'item',
+      formatter: function (params, ticket, callback) {
+        /*$.get('detail?name=' + params.name, function (content) {
+              callback(ticket, toHTML(content));
+          });*/
+        var tips = '<ul style="list-style: none">'
+        tips += '<li>行政区划：' + params.name + '</li>'
+        tips += '<li>历史已报件：1000个</li>'
+        tips += '<li>最近上报时间：' + new Date().toLocaleTimeString() + '</li>'
+        tips += '</ul>'
+        return tips
+      },
     },
     toolbox: {
       show: true,
@@ -356,9 +364,10 @@ const start = async () => {
       // },
       {
         type: 'scatter', //  指明图表类型：带涟漪效果的散点图
-        zlevel: 1,
+        zlevel: 5,
         coordinateSystem: 'geo', //  指明绘制在geo坐标系上
         animationDelay: 500,
+        symbolSize: 7,
         data: [],
         tooltip: {
           trigger: 'item',
@@ -382,6 +391,14 @@ const start = async () => {
           period: 6,
           trailLength: 0,
           symbolSize: 3,
+        },
+        tooltip: {
+          formatter: (params, ticket, callback) => {
+            // console.log(params)
+            let tip = `<p>${params.data.fromName}-${params.data.toName} ${params.dataIndex}</p>`
+            // 获取同一地点下的所有(活跃)ip
+            return tip
+          },
         },
 
         lineStyle: {
