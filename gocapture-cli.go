@@ -19,7 +19,7 @@ import (
 )
 
 // cli版本
-// 需要以管理员权限运行 以及安装 winpcap或者libpcap
+// 需要以管理员权限运行 以及安装 winpcap或者libpcap 
 func main() {
 	var option Option
 	// 流量统计 ip map 注意是一个指针map，可以直接修改其中元素
