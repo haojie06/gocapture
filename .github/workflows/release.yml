@@ -1,16 +1,14 @@
 name: Release gocapture
-
-on: release
+on:
+  push:
+    tags:
+      - v*
 jobs:
   release:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Dump GitHub context.
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -46,6 +44,7 @@ jobs:
           asset_path: gocapture_linux.tgz
           asset_name: gocapture_linux.tgz
           asset_content_type: application/gzip
+
   windowsbuild:
     runs-on: windows-latest
     needs: release
