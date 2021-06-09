@@ -34,7 +34,7 @@ jobs:
       - name: build linux version
         run: go build -o gocapture_linux -v ./...
       - name: package
-        run: sudo ./build.sh
+        run: tar -zcvf gocapture_linux.tgz gocapture_linux static templates GeoLite2-City.mmdb
       - name: upload
         uses: actions/upload-release-asset@v1
         env:
@@ -57,7 +57,7 @@ jobs:
       - name: build windows version
         run: go build -v -o gocapture_windows.exe ./...
       - name: package
-        run: ./build.cmd
+        run: tar -zcvf gocapture_windows.tgz gocapture_windows.exe static templates GeoLite2-City.mmdb
       - name: upload
         uses: actions/upload-release-asset@v1
         env:

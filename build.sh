@@ -1,1 +1,0 @@
-tar -zcvf gocapture_linux.tgz gocapture_linux static templates GeoLite2-City.mmdb
