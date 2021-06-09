@@ -3,7 +3,8 @@ name: Release gocapture-cli
 
 on:
   push:
-    branches: cli
+    branches:
+      - cli
 
 jobs:
   release:
