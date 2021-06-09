@@ -1,4 +1,4 @@
-name: Release gocapture
+name: Release gocapture-cli
 
 on:
   push:
