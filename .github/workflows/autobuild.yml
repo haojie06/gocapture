@@ -1,0 +1,33 @@
+name: Build gocapture
+
+on:
+  push:
+    branches: [main, cli]
+  pull_request:
+    branches: [main, cli]
+
+jobs:
+  linuxbuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install libpcap
+        run: sudo apt-get install libpcap-dev
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+
+      - name: Linux Build
+        run: go build -v ./...
+
+  windowsbuild:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: Windows Build
+        run: go build -v ./...
