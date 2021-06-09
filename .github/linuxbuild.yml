@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  build:
+  linuxbuild:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -22,5 +22,15 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+  windowsbuild:
+    runs-on: windows-latest
+        steps:
+    - uses: actions/checkout@v2
+    - name: install libpcap
+      run: sudo apt-get install libpcap-dev
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+          - name: Build
+      run: go build -v ./...
