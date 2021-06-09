@@ -3,7 +3,7 @@ name: Release gocapture
 on:
   push:
     branches:
-      - main
+      - cli
     tags:
       - v*
 
@@ -36,17 +36,15 @@ jobs:
         with:
           go-version: 1.15
       - name: build linux version
-        run: go build -o gocapture_linux -v ./...
-      - name: package
-        run: ./build.sh
+        run: go build -o gocapture-cli -v ./...
       - name: upload
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: gocapture_linux.tgz
-          asset_name: gocapture_linux.tgz
+          asset_path: gocapture-cli
+          asset_name: gocapture-cli
           asset_content_type: application/gzip
 
   windowsbuild:
@@ -59,15 +57,13 @@ jobs:
         with:
           go-version: 1.15
       - name: build windows version
-        run: go build -v -o gocapture_windows.exe ./...
-      - name: package
-        run: ./build.cmd
+        run: go build -v -o gocapture-cli.exe ./...
       - name: upload
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: gocapture_windows.tgz
-          asset_name: gocapture_windows.tgz
+          asset_path: gocapture-cli.exe
+          asset_name: gocapture-cli.exe
           asset_content_type: application/gzip
