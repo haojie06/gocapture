@@ -1,0 +1,72 @@
+# 暂时没想到更好的区分方法...那么cli分支上的push全部都进行release好了
+name: Release gocapture-cli
+
+on:
+  push:
+    branches:
+      - cli
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: gocapture-cli ${{ github.ref }}
+          draft: false
+          prerelease: false
+  linuxbuild:
+    name: build gocapture
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: install libpcap
+        run: sudo apt-get install libpcap-dev
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: build linux version
+        run: go build -o gocapture-cli -v ./...
+      - name: upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapture-cli
+          asset_name: gocapture-cli
+          asset_content_type: application/gzip
+
+  windowsbuild:
+    runs-on: windows-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: build windows version
+        run: go build -v -o gocapture-cli.exe ./...
+      - name: upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapture-cli.exe
+          asset_name: gocapture-cli.exe
+          asset_content_type: application/gzip
