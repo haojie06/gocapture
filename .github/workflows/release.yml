@@ -1,14 +1,9 @@
 name: Release gocapture
 
-# on:
-#   push:
-#     tags:
-#       - v*
 on:
   push:
-    branches: [main, cli]
-  pull_request:
-    branches: [main, cli]
+    tags:
+      - v*
 
 jobs:
   release:
