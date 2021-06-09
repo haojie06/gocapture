@@ -97,11 +97,11 @@ func setOption(option *Option) {
 		}
 		fmt.Println("-----------------------------------------------------------------")
 	}
-	fmt.Print("请选择一张网卡进行抓包:")
+	fmt.Print("请选择一张网卡进行抓包: ")
 	fmt.Scanln(&selectIndex)
-	fmt.Println("请选择多少个包刷新一次流量统计")
+	fmt.Print("请选择多少个包刷新一次流量统计(大流量请设置高一些): ")
 	fmt.Scanln(&flushInterval)
-	fmt.Println("是否写入pcap文件(packet.pcap) 1.是 2.否")
+	fmt.Print("是否写入pcap文件(packet.pcap) 1.是 2.否: ")
 	fmt.Scanln(&ifWritePcap)
 	option.deviceName = devices[selectIndex].Name
 	option.flushInterval = flushInterval
