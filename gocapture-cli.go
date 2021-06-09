@@ -19,7 +19,7 @@ import (
 )
 
 // cli版本
-// 需要以管理员权限运行 以及安装 winpcap或者libpcap 
+// 需要以管理员权限运行 以及安装 winpcap或者libpcap
 func main() {
 	var option Option
 	// 流量统计 ip map 注意是一个指针map，可以直接修改其中元素
@@ -100,11 +100,11 @@ func setOption(option *Option) {
 		}
 		fmt.Println("-----------------------------------------------------------------")
 	}
-	fmt.Print("请选择一张网卡进行抓包:")
+	fmt.Print("请选择一张网卡进行抓包: ")
 	fmt.Scanln(&selectIndex)
-	fmt.Println("请选择多少个包刷新一次流量统计")
+	fmt.Print("请选择多少个包刷新一次流量统计: ")
 	fmt.Scanln(&flushInterval)
-	fmt.Println("是否写入pcap文件(packet.pcap) 1.是 2.否")
+	fmt.Print("是否写入pcap文件(packet.pcap) 1.是 2.否: ")
 	fmt.Scanln(&ifWritePcap)
 	option.deviceName = devices[selectIndex].Name
 	option.flushInterval = flushInterval
