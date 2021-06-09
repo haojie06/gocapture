@@ -24,7 +24,7 @@ jobs:
 
   windowsbuild:
     runs-on: windows-latest
-        steps:
+    steps:
     - uses: actions/checkout@v2
     - name: Set up Go
       uses: actions/setup-go@v2
