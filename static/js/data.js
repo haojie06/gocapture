@@ -5,7 +5,7 @@ const getStr = async () => {
     // let jsonResult = response
     strData = await response.text()
   } else {
-    console.log(response.status + '失败')
+    console.log(response.status + '失败 ')
     strData = Promise.reject('failed')
   }
   let textArea = document.getElementById('stats')
