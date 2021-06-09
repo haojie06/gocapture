@@ -1,6 +1,5 @@
 const getStr = async () => {
-  console.log('update')
-  let response = await fetch(fetchUrl + '/str')
+  let response = await fetch(fetchUrl + '/str/')
   let strData
   if (response.ok) {
     // let jsonResult = response

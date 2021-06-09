@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
-	"strings"
 )
 
 var dataChan chan string
@@ -20,8 +20,8 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	go getData(dataChan)
 	http.HandleFunc("/", pageHandler)
-	http.HandleFunc("/str", strHandler)
-	http.HandleFunc("/json", jsonHandler)
+	http.HandleFunc("/str/", strHandler)
+	http.HandleFunc("/json/", jsonHandler)
 	err := http.ListenAndServe(":"+listenPort, nil)
 	handleErr(err)
 }
@@ -34,6 +34,7 @@ func pageHandler(w http.ResponseWriter, req *http.Request) {
 	handleErr(err)
 }
 func strHandler(w http.ResponseWriter, req *http.Request) {
+	log.Println("Str 请求")
 	allowCORS(w)
 	dataChan <- "getStr"
 	data := <-dataChan
@@ -41,9 +42,10 @@ func strHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func jsonHandler(w http.ResponseWriter, req *http.Request) {
+	log.Println("JSON 请求")
 	allowCORS(w)
-	param := req.URL.Path[1:]
-	dataChan <- "getData/" + param
+	// param := req.URL.Path[1:]
+	dataChan <- "getData"
 	data := <-dataChan
 	fmt.Fprintf(w, data)
 }
@@ -60,10 +62,9 @@ func getData(dataChan chan string) {
 		case signal := <-dataChan:
 			{
 				// 接收到信号返回本地变量
-				signals := strings.Split(signal, "/")
-				if signals[0] == "getStr" {
+				if signal == "getStr" {
 					dataChan <- bandwidthData.bandwidthStatisticStr
-				} else if signals[0] == "getData" {
+				} else if signal == "getData" {
 					// JSON形式返回
 					// 对时间参数进行筛选(仅对JSON请求有效)
 					jsonData, err := json.Marshal(bandwidthData.bandwidthList)

@@ -1,4 +1,3 @@
-// var myChart = echarts.init(document.getElementById('map'))
 // 从服务器获取数据，测试用
 // 创建map 城市或者国家（查询不到具体城市的时候作为键，值为一系列的ipstruct）
 let chart = echarts.init(document.getElementById('map'))
@@ -31,16 +30,15 @@ const judgeIfActive = (timeStamp, difTime) => {
   return lastActiveTime > cmpTime
 }
 
+// 获取数据并处理
 const getData = async () => {
-  coordPointData = []
-  linesData = []
+  console.log('getData')
   coordPointData = [{ name: startName, value: startPos }]
   linesData = []
   //如何动态修改这个url？
-  let response = await fetch(fetchUrl + '/json')
+  let response = await fetch(fetchUrl + '/json/')
   let jsonData
   if (response.ok) {
-    // let jsonResult = response
     jsonData = await response.json()
   } else {
     console.log(response.status + '失败')
@@ -48,7 +46,6 @@ const getData = async () => {
   }
   // 坐标点 起点手动设置
   // 之后需要考虑时间戳，以及创建一个map，记录到同一个地点的多个连接（多个ip归属于一个地方）
-
   // 原始数据处理、分类、去除过期的数据
   for (let data of jsonData) {
     ipMap.set(data.value.ip, data)
@@ -114,7 +111,8 @@ const getData = async () => {
   linesData.sort((m, n) => m.toName - n.toName)
 }
 
-const start = async () => {
+// 绘图
+const draw = () => {
   let option = {
     // backgroundColor: '#1b1b1b',
     // color: ['gold', 'aqua', 'lime'],
@@ -264,23 +262,7 @@ const start = async () => {
       },
     ],
   }
-
   chart.setOption(option)
-  // 定时更新
-  const instantRun = async () => {
-    await getData()
-    option.series[1].data = linesData
-    option.series[0].data = coordPointData
-    // linesData.forEach((item, index) => {
-    //   console.log(index + ':' + item.toName)
-    // })
-    // console.log('update', option.series[0].data)
-    chart.setOption(option)
-  }
-  instantRun()
-  setInterval(async () => {
-    await instantRun()
-  }, 5000)
 }
 
 // 保证缩放的时候，散点图和线不会错位
@@ -289,11 +271,24 @@ window.onresize = () => {
   chart.resize()
 }
 
-chart.on('georoam', (params) => {
-  // console.log(params)
-  if (Reflect.has(params, 'dx')) return //如果是拖拽事件则退出
-  let newOption = { ...chart.getOption() }
-  // console.log(newOption)
-  option = newOption
-})
-start()
+// 定时更新
+const updateMap = async () => {
+  await getData()
+  console.log('updateMap')
+  let option = chart.getOption()
+  option.series[0].data = coordPointData
+  option.series[1].data = linesData
+  chart.setOption(option)
+}
+
+// 最初绘图
+draw()
+updateMap()
+// 运行（后期数据更新
+setInterval(async () => {
+  try {
+    await updateMap()
+  } catch (err) {
+    console.log('error')
+  }
+}, 5000)
