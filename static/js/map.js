@@ -32,7 +32,6 @@ const judgeIfActive = (timeStamp, difTime) => {
 
 // 获取数据并处理
 const getData = async () => {
-  console.log('getData')
   coordPointData = [{ name: startName, value: startPos }]
   linesData = []
   //如何动态修改这个url？
@@ -274,7 +273,6 @@ window.onresize = () => {
 // 定时更新
 const updateMap = async () => {
   await getData()
-  console.log('updateMap')
   let option = chart.getOption()
   option.series[0].data = coordPointData
   option.series[1].data = linesData
