@@ -54,6 +54,7 @@ jobs:
 
   windowsbuild:
     runs-on: windows-latest
+    needs: release
     steps:
       - uses: actions/checkout@v2
       - name: Set up Go
