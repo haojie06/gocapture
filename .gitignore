@@ -1,2 +1,5 @@
 test.pcap
 packet.pcap
+gocapture
+gocapture-cli
+gocapture-cli.exe
