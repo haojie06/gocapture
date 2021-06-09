@@ -1,0 +1,1 @@
+tar -zcvf gocapture_windows.tgz gocapture_windows.exe static templates GeoLite2-City.mmdb
