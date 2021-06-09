@@ -26,8 +26,6 @@ jobs:
     runs-on: windows-latest
         steps:
     - uses: actions/checkout@v2
-    - name: install libpcap
-      run: sudo apt-get install libpcap-dev
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
