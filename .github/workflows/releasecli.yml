@@ -2,13 +2,12 @@ name: Release gocapture-cli
 
 on:
   push:
-    branches:
-      - cli
     tags:
       - v*
 
 jobs:
   release:
+    if: github.event.base_ref == 'refs/heads/cli'
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -24,6 +23,7 @@ jobs:
           draft: false
           prerelease: false
   linuxbuild:
+    if: github.event.base_ref == 'refs/heads/cli'
     name: build gocapture
     needs: release
     runs-on: ubuntu-latest
@@ -48,6 +48,7 @@ jobs:
           asset_content_type: application/gzip
 
   windowsbuild:
+    if: github.event.base_ref == 'refs/heads/cli'
     runs-on: windows-latest
     needs: release
     steps:
