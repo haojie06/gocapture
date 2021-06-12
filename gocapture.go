@@ -101,7 +101,7 @@ func setOption(option *Option) {
 	fmt.Scanln(&selectIndex)
 	fmt.Print("请选择多少个包刷新一次流量统计(大流量请设置高一些): ")
 	fmt.Scanln(&flushInterval)
-	fmt.Print("是否写入pcap文件(packet.pcap) 1.是 2.否: ")
+	fmt.Print("是否写入pcap文件packet.pcap 如果只是想统计流量, 请选择否 1.是 2.否: ")
 	fmt.Scanln(&ifWritePcap)
 	option.deviceName = devices[selectIndex].Name
 	option.flushInterval = flushInterval
