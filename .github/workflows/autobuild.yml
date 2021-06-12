@@ -24,6 +24,7 @@ jobs:
         run: go build -v ./...
       - name: prepare arm64 build
         run: sudo apt-get install bison flex gcc-aarch64-linux-gnu
+
       # - name: build libpcap for arm64
       #   run: |
       #     cd /tmp
@@ -37,6 +38,7 @@ jobs:
       #   run: |
       #     rm -f nac.manifest nac.syso
       #     CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 CGO_LDFLAGS="-L/tmp/libpcap-$PCAPV" GOOS=linux GOARCH=arm64 go build -o gocapture_linux_arm64
+
   windowsbuild:
     runs-on: windows-latest
     steps:
