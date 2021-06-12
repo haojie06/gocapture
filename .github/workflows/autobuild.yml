@@ -9,6 +9,9 @@ on:
 jobs:
   linuxbuild:
     runs-on: ubuntu-latest
+    env:
+      PCAPV: 1.10.1
+      CGO_LDFLAGS: '-L./libpcap-1.10.1'
     steps:
       - uses: actions/checkout@v2
       - name: install libpcap
@@ -17,10 +20,23 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-
       - name: Linux Build
         run: go build -v ./...
-
+      - name: prepare arm64 build
+        run: sudo apt-get install bison flex gcc-aarch64-linux-gnu
+      # - name: build libpcap for arm64
+      #   run: |
+      #     cd /tmp
+      #     wget http://www.tcpdump.org/release/libpcap-$PCAPV.tar.gz
+      #     tar -zxvf libpcap-$PCAPV.tar.gz
+      #     cd libpcap-$PCAPV
+      #     export CC=aarch64-linux-gnu-gcc
+      #     ./configure --host=aarch64-linux --with-pcap=linux
+      #     make
+      # - name: build gocapture for arm64
+      #   run: |
+      #     rm -f nac.manifest nac.syso
+      #     CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 CGO_LDFLAGS="-L/tmp/libpcap-$PCAPV" GOOS=linux GOARCH=arm64 go build -o gocapture_linux_arm64
   windowsbuild:
     runs-on: windows-latest
     steps:
