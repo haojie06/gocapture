@@ -58,10 +58,12 @@ jobs:
           make
           cd ..
           env CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV" go build -o gocapture_linux_arm .
-      - name: package
+      - name: package amd64 version
         run: tar -zcvf gocapture_linux_amd64.tgz gocapture_linux_amd64 static templates GeoLite2-City.mmdb
-      - run: tar -zcvf gocapture_linux_arm64.tgz gocapture_linux_arm64 static templates GeoLite2-City.mmdb
-      - run: tar -zcvf gocapture_linux_arm.tgz gocapture_linux_arm static templates GeoLite2-City.mmdb
+      - name: package arm64 version
+        run: tar -zcvf gocapture_linux_arm64.tgz gocapture_linux_arm64 static templates GeoLite2-City.mmdb
+      - name: package arm version
+        run: tar -zcvf gocapture_linux_arm.tgz gocapture_linux_arm static templates GeoLite2-City.mmdb
       - name: upload amd64 version
         uses: actions/upload-release-asset@v1
         env:
