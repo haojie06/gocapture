@@ -12,10 +12,10 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+      # - name: Dump GitHub context
+      #   env:
+      #     GITHUB_CONTEXT: ${{ toJson(github) }}
+      #   run: echo "$GITHUB_CONTEXT"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -30,6 +30,8 @@ jobs:
     name: build linux version
     needs: release
     runs-on: ubuntu-latest
+    env:
+      PCAPV: 1.10.1
     steps:
       - uses: actions/checkout@v2
       - name: install libpcap
@@ -38,18 +40,57 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - name: build linux version
-        run: go build -o gocapture-cli -v ./...
-      - name: upload
+      - name: build linux amd64 version
+        run: |
+          rm -f nac.manifest nac.syso
+          go build -o gocapturecli_linux_amd64 -v ./...
+      - name: build linux arm version
+        run: |
+          pwd
+          sudo apt-get install -y bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+          tar -zxvf libpcap-$PCAPV.tar.gz
+          cd libpcap-$PCAPV
+          export CC=arm-linux-gnueabi-gcc
+          ./configure --host=arm-linux --with-pcap=linux
+          make
+          cd ..
+          env CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV" go build -o gocapturecli_linux_arm .
+      - name: build linux arm64 version
+        run: |
+          cd libpcap-$PCAPV
+          make clean
+          export CC=aarch64-linux-gnu-gcc
+          ./configure --host=aarch64-linux --with-pcap=linux
+          make
+          cd ..
+          env CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV" go build -o gocapturecli_linux_arm64
+      - name: upload amd64 version
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: gocapture-cli
-          asset_name: gocapture-cli
+          asset_path: gocapturecli_linux_amd64
+          asset_name: gocapturecli_linux_amd64
           asset_content_type: application/gzip
-
+      - name: upload arm64 version
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapturecli_linux_arm64
+          asset_name: gocapturecli_linux_arm64
+          asset_content_type: application/gzip
+      - name: upload arm version
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapturecli_linux_arm
+          asset_name: gocapturecli_linux_arm
+          asset_content_type: application/gzip
   windowsbuild:
     name: build linux version
     runs-on: windows-latest
@@ -61,7 +102,7 @@ jobs:
         with:
           go-version: 1.15
       - name: build windows version
-        run: go build -v -o gocapture-cli.exe ./...
+        run: go build -v -o gocapturecli_windows.exe ./...
       - name: upload
         uses: actions/upload-release-asset@v1
         env:

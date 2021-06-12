@@ -181,9 +181,11 @@ func dataTransfer(byteCount int) string {
 	} else if byteCount < 1073741824 {
 		formatBandwidth = strconv.Itoa(byteCount/1048576) + "MB"
 	} else if byteCount < int(math.Pow(1024, 4)) {
-		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 3))) + "GB"
+		//较大单位保留2位小数
+		formatBandwidth = fmt.Sprintf("%.2fGB", (float64(byteCount) / math.Pow(1024, 3)))
+		// formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 3))) + "GB"
 	} else {
-		formatBandwidth = strconv.Itoa(byteCount/int(math.Pow(1024, 4))) + "TB"
+		formatBandwidth = fmt.Sprintf("%.3fTB", (float64(byteCount) / math.Pow(1024, 4)))
 	}
 	return formatBandwidth
 }
