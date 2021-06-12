@@ -36,7 +36,9 @@ jobs:
       - name: build gocapture for arm64
         run: |
           ls libpcap-1.10.1
-          CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="-L libpcap-$PCAPV" go build -o gocapture_linux_arm64
+          export CGO_LDFLAGS="-L./libpcap-$PCAPV"
+          echo $CGO_LDFLAGS
+          CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o gocapture_linux_arm64
 
   windowsbuild:
     runs-on: windows-latest
