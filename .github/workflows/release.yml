@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install libpcap
-        run: sudo apt-get install -y libpcap-dev bision flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
+        run: sudo apt-get install -y libpcap-dev bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
       - run: |
           export PCAPV=1.10.1
           rm -f nac.manifest nac.syso
