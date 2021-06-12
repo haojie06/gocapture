@@ -21,6 +21,8 @@ jobs:
           prerelease: false
   linuxbuild:
     name: build gocapture
+    env:
+      PCAPV: 1.10.1
     needs: release
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +30,6 @@ jobs:
       - name: install libpcap
         run: sudo apt-get install -y libpcap-dev bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
       - run: |
-          export PCAPV=1.10.1
           rm -f nac.manifest nac.syso
       - name: Set up Go
         uses: actions/setup-go@v2
