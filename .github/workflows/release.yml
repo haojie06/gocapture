@@ -47,6 +47,7 @@ jobs:
           ./configure --host=aarch64-linux --with-pcap=linux
           make
           cd ..
+          ls
           env CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="-L./libpcap-$PCAPV" go build -o gocapture_linux_arm64 .
       - name: build linux arm version
         run: |
