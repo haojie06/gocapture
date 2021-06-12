@@ -26,25 +26,65 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install libpcap
-        run: sudo apt-get install libpcap-dev
+        run: sudo apt-get install -y libpcap-dev bision flex gcc-aarch64-linux-gnu arm-linux-gnueabi arm-linux-gnueabihf
+      - run: export PCAPV=1.10.1
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
       - name: build linux version
-        run: go build -o gocapture_linux -v ./...
+        run: go build -o gocapture_linux_amd64 -v ./...
+      - name: build linux arm64 version
+        run: |
+          pwd
+          wget http://www.tcpdump.org/release/libpcap-$PCAPV.tar.gz
+          tar -zxvf libpcap-$PCAPV.tar.gz
+          cd libpcap-$PCAPV
+          export CC=aarch64-linux-gnu-gcc
+          ./configure --host=aarch64-linux --with-pcap=linux
+          make
+          cd ..
+          env CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="./libpcap-$PCAPV" go build -o gocapture_linux_arm64 .
+      - name: build linux arm version
+        run: |
+          cd libpcap-$PCAPV
+          make clean
+          export CC=arm-linux-gnueabi-gcc
+          ./configure --host=arm-linux --with-pcap=linux
+          make
+          cd ..
+          env CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm CGO_LDFLAGS="./libpcap-$PCAPV" go build -o gocapture_linux_arm .
       - name: package
-        run: tar -zcvf gocapture_linux.tgz gocapture_linux static templates GeoLite2-City.mmdb
-      - name: upload
+        run: tar -zcvf gocapture_linux_amd64.tgz gocapture_linux_amd64 static templates GeoLite2-City.mmdb
+        run: tar -zcvf gocapture_linux_arm64.tgz gocapture_linux_arm64 static templates GeoLite2-City.mmdb
+        run: tar -zcvf gocapture_linux_arm.tgz gocapture_linux_arm static templates GeoLite2-City.mmdb
+      - name: upload amd64 version
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: gocapture_linux.tgz
-          asset_name: gocapture_linux.tgz
+          asset_path: gocapture_linux_amd64.tgz
+          asset_name: gocapture_linux_amd64.tgz
           asset_content_type: application/gzip
-
+      - name: upload arm64 version
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapture_linux_arm64.tgz
+          asset_name: gocapture_linux_arm64.tgz
+          asset_content_type: application/gzip
+      - name: upload arm32 version
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: gocapture_linux_arm.tgz
+          asset_name: gocapture_linux_arm.tgz
+          asset_content_type: application/gzip
   windowsbuild:
     runs-on: windows-latest
     needs: release
