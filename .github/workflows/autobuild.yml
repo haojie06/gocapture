@@ -35,7 +35,7 @@ jobs:
           make
       - name: build gocapture for arm64
         run: |
-          ls
+          rm -f nac.manifest nac.syso
           CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 CGO_LDFLAGS="-L/tmp/libpcap-$PCAPV" GOOS=linux GOARCH=arm64 go build -o gocapture_linux_arm64
   windowsbuild:
     runs-on: windows-latest
