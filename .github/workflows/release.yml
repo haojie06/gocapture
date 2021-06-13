@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: install libpcap
-        run: sudo apt-get install -y gcc bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
+        run: sudo apt-get install -y libpcap-dev gcc bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf
       - run: |
           rm -f nac.manifest nac.syso
       - name: Set up Go
