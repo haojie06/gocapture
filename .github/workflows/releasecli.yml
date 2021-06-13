@@ -1,4 +1,3 @@
-# 暂时没想到更好的区分方法...那么cli分支上的push全部都进行release好了
 name: Release gocapture-cli
 
 on:
@@ -34,8 +33,8 @@ jobs:
       PCAPV: 1.10.1
     steps:
       - uses: actions/checkout@v2
-      - name: install libpcap
-        run: sudo apt-get install libpcap-dev
+      - name: install dependencies
+        run: sudo apt-get install -y libpcap-dev gcc bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -43,18 +42,22 @@ jobs:
       - name: build linux amd64 version
         run: |
           rm -f nac.manifest nac.syso
-          go build -o gocapturecli_linux_amd64 -v ./...
-      - name: build linux arm version
-        run: |
-          sudo apt-get install -y bison flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
           wget http://www.tcpdump.org/release/libpcap-$PCAPV.tar.gz
           tar -zxvf libpcap-$PCAPV.tar.gz
           cd libpcap-$PCAPV
+          ./configure --with-pcap=linux
+          make
+          cd ..
+          CGO_ENABLED=1 CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV -static" go build -o gocapturecli_linux_amd64 .
+      - name: build linux arm version
+        run: |
+          cd libpcap-$PCAPV
+          make clean
           export CC=arm-linux-gnueabi-gcc
           ./configure --host=arm-linux --with-pcap=linux
           make
           cd ..
-          env CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV" go build -o gocapturecli_linux_arm .
+          env CC=arm-linux-gnueabi-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV -static" go build -o gocapturecli_linux_arm .
       - name: build linux arm64 version
         run: |
           cd libpcap-$PCAPV
@@ -63,7 +66,7 @@ jobs:
           ./configure --host=aarch64-linux --with-pcap=linux
           make
           cd ..
-          env CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV" go build -o gocapturecli_linux_arm64
+          env CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CGO_LDFLAGS="-L/home/runner/work/gocapture/gocapture/libpcap-$PCAPV -static" go build -o gocapturecli_linux_arm64
       - name: upload amd64 version
         uses: actions/upload-release-asset@v1
         env:
