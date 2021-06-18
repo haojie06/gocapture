@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"os"
@@ -29,12 +28,6 @@ func gocapture(bandwidthDataChan chan BandwidthData) {
 	capturePackets(bandwidthMap, option, bandwidthDataChan)
 }
 
-func handleErr(err error) {
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-}
-
 func clearScreen() {
 	if runtime.GOOS == "windows" {
 		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
@@ -58,24 +51,32 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 	// sort.Sort(pl)
 	return pl
 }
-
-func geoIPCountry(ipStr string) *geoip2.Country {
-	db, err := geoip2.Open("GeoLite2-Country.mmdb")
-	handleErr(err)
+func getGeoDb(dbType string) *geoip2.Reader {
+	var db *geoip2.Reader
+	var err error
+	if dbType == "city" {
+		db, err = geoip2.Open("GeoLite2-Country.mmdb")
+		handleErr(err, "打开GEO数据库")
+	} else if dbType == "country" {
+		db, err = geoip2.Open("GeoLite2-Country.mmdb")
+		handleErr(err, "打开GEO数据库")
+	}
+	return db
+}
+func geoIPCountry(ipStr string, geoDB *geoip2.Reader) *geoip2.Country {
+	// 不要重复打开！使用闭包！
 	// defer db.Close()
 	ip := net.ParseIP(ipStr)
-	record, err := db.Country(ip)
-	handleErr(err)
+	record, err := geoDB.Country(ip)
+	handleErr(err, "解析国家信息")
 	return record
 }
 
-func geoIPCity(ipStr string) *geoip2.City {
-	db, err := geoip2.Open("GeoLite2-City.mmdb")
-	handleErr(err)
+func geoIPCity(ipStr string, geoDB *geoip2.Reader) *geoip2.City {
 	// defer db.Close()
 	ip := net.ParseIP(ipStr)
-	record, err := db.City(ip)
-	handleErr(err)
+	record, err := geoDB.City(ip)
+	handleErr(err, "解析城市信息")
 	return record
 }
 
@@ -83,7 +84,7 @@ func geoIPCity(ipStr string) *geoip2.City {
 func setOption(option *Option) {
 	var selectIndex, flushInterval, ifWritePcap int
 	devices, err := pcap.FindAllDevs()
-	handleErr(err)
+	handleErr(err, "获取设备")
 	// Print device information
 	fmt.Println("Devices found:")
 	for index, device := range devices {
@@ -114,7 +115,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 	flushInterval := option.flushInterval
 	// timeout表示多久刷新一次数据包，负数表示立即刷新
 	handle, err := pcap.OpenLive(deviceName, 1024, false, -1)
-	handleErr(err)
+	handleErr(err, "打开设备的流")
 	defer handle.Close()
 	var w *pcapgo.Writer
 	if option.ifWritePcap == 1 {
@@ -137,6 +138,8 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
+		// 根据不同版本开启不同的geo数据库
+		geoDB := getGeoDb("city")
 		if packet.NetworkLayer() != nil {
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
@@ -160,7 +163,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 			}
 			// 每十个包打印一次统计
 			if packetCount > flushInterval {
-				printStatistic(bandwidthMap, "city", bandwidthDataChan)
+				printStatistic(bandwidthMap, "city", bandwidthDataChan, geoDB)
 				packetCount = 0
 			}
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
@@ -188,7 +191,7 @@ func dataTransfer(byteCount int) string {
 }
 
 // 打印统计信息 (这个传参嵌套太多层了)
-func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData) {
+func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) {
 	var bandwidthData BandwidthData
 	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
@@ -199,7 +202,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 		//当前使用城市IP库 (影响Location字段)
 		var IPLocation string
 		if geoType == "city" {
-			record := geoIPCity(ips.Key)
+			record := geoIPCity(ips.Key, geoDB)
 			if record.Country.Names["en"] == "" {
 				IPLocation = "PrivateIP"
 			} else {
@@ -211,7 +214,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 			ips.Value.Longitude = record.Location.Longitude
 			ips.Value.Latitude = record.Location.Latitude
 		} else if geoType == "country" {
-			record := geoIPCountry(ips.Key)
+			record := geoIPCountry(ips.Key, geoDB)
 			if record.Country.Names["en"] == "" {
 				IPLocation = "PrivateIP"
 			} else {

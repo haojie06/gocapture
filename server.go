@@ -25,15 +25,15 @@ func main() {
 	http.HandleFunc("/str/", strHandler)
 	http.HandleFunc("/json/", jsonHandler)
 	err := http.ListenAndServe(":"+listenPort, nil)
-	handleErr(err)
+	handleErr(err, "开启服务器监听")
 }
 func pageHandler(w http.ResponseWriter, req *http.Request) {
 	allowCORS(w)
 	//加载模板
 	tpl, err := template.ParseFiles("templates/index.tmpl")
-	handleErr(err)
+	handleErr(err, "解析模板")
 	err = tpl.Execute(w, "")
-	handleErr(err)
+	handleErr(err, "加载模板")
 }
 func strHandler(w http.ResponseWriter, req *http.Request) {
 	allowCORS(w)
@@ -68,7 +68,7 @@ func getData() {
 					// JSON形式返回
 					// 对时间参数进行筛选(仅对JSON请求有效)
 					jsonData, err := json.Marshal(bandwidthData.bandwidthList)
-					handleErr(err)
+					handleErr(err, "序列化BandwidthList为JSON")
 					jsonChan <- string(jsonData)
 				}
 			}
