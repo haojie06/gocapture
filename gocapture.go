@@ -99,11 +99,17 @@ func setOption(option *Option) {
 		fmt.Println("-----------------------------------------------------------------")
 	}
 	fmt.Print("请选择一张网卡进行抓包: ")
-	fmt.Scanln(&selectIndex)
+	_, err = fmt.Scanln(&selectIndex)
+	handleErr(err, "非法输入")
 	fmt.Print("请选择多少个包刷新一次流量统计(大流量请设置高一些): ")
-	fmt.Scanln(&flushInterval)
+	_, err = fmt.Scanln(&flushInterval)
+	handleErr(err, "非法输入")
+	if flushInterval == 0 {
+		flushInterval = 500
+	}
 	fmt.Print("是否写入pcap文件packet.pcap 如果只是想统计流量, 请选择否 1.是 2.否: ")
-	fmt.Scanln(&ifWritePcap)
+	_, err = fmt.Scanln(&ifWritePcap)
+	handleErr(err, "非法输入")
 	option.deviceName = devices[selectIndex].Name
 	option.flushInterval = flushInterval
 	clearScreen()
