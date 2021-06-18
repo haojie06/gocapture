@@ -55,11 +55,11 @@ func getGeoDb(dbType string) *geoip2.Reader {
 	var db *geoip2.Reader
 	var err error
 	if dbType == "city" {
-		db, err = geoip2.Open("GeoLite2-Country.mmdb")
-		handleErr(err, "打开GEO数据库")
+		db, err = geoip2.Open("GeoLite2-City.mmdb")
+		handleErr(err, "打开GEO City数据库")
 	} else if dbType == "country" {
 		db, err = geoip2.Open("GeoLite2-Country.mmdb")
-		handleErr(err, "打开GEO数据库")
+		handleErr(err, "打开GEO Country数据库")
 	}
 	return db
 }
@@ -140,6 +140,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
 		// 根据不同版本开启不同的geo数据库
 		geoDB := getGeoDb("city")
+		defer geoDB.Close()
 		if packet.NetworkLayer() != nil {
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
