@@ -132,6 +132,10 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 	}
 	packetCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	// 打开GEO数据库
+	// 根据不同版本开启不同的geo数据库
+	geoDB := getGeoDb("city")
+	defer geoDB.Close()
 	for packet := range packetSource.Packets() {
 		// Process packet here
 		packetCount++
@@ -144,9 +148,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
-		// 根据不同版本开启不同的geo数据库
-		geoDB := getGeoDb("city")
-		defer geoDB.Close()
+
 		if packet.NetworkLayer() != nil {
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
