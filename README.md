@@ -10,3 +10,5 @@
 通过 http://localhost:8080 访问流量地图
 
 web 接口 /str 或者 /json 可以获取文本数据。
+
+*自行在linux下编译的时候请先删掉nac.syso*
