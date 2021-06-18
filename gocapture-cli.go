@@ -60,16 +60,13 @@ func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
 	return pl
 }
 
-func geoIPCountry(ipStr string) *geoip2.Country {
+// 闭包
+func openGeoIPDB() *geoip2.Reader {
 	geodb, err := Asset("GeoLite2-Country.mmdb")
 	handleErr(err)
 	db, err := geoip2.FromBytes(geodb)
 	handleErr(err)
-	// defer db.Close()
-	ip := net.ParseIP(ipStr)
-	record, err := db.Country(ip)
-	handleErr(err)
-	return record
+	return db
 }
 
 func geoIPCity(ipStr string) *geoip2.City {
@@ -128,6 +125,8 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option) {
 	}
 	packetCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	geoIPCountryDB := openGeoIPDB()
+	defer geoIPCountryDB.Close()
 	for packet := range packetSource.Packets() {
 		// Process packet here
 		packetCount++
@@ -163,7 +162,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option) {
 			}
 			// 每十个包打印一次统计
 			if packetCount > flushInterval {
-				printStatistic(bandwidthMap, "country")
+				printStatistic(bandwidthMap, "country", geoIPCountryDB)
 				packetCount = 0
 			}
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
@@ -191,7 +190,7 @@ func dataTransfer(byteCount int) string {
 }
 
 // 打印统计信息 (这个传参嵌套太多层了)
-func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
+func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, geoIPCountryDB *geoip2.Reader) {
 	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
 	bandwidthList := sortIPs(bandwidthMap)
@@ -213,7 +212,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
 			ips.Value.Longitude = record.Location.Longitude
 			ips.Value.Latitude = record.Location.Latitude
 		} else if geoType == "country" {
-			record := geoIPCountry(ips.Key)
+			record := getRecordByIP(ips.Key, geoIPCountryDB)
 			if record.Country.Names["en"] == "" {
 				IPLocation = "PrivateIP"
 			} else {
@@ -228,4 +227,12 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string) {
 	}
 	clearScreen()
 	fmt.Println(drawStr)
+}
+
+func getRecordByIP(ipStr string, db *geoip2.Reader) *geoip2.Country {
+	// defer db.Close()
+	ip := net.ParseIP(ipStr)
+	record, err := db.Country(ip)
+	handleErr(err)
+	return record
 }
