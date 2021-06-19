@@ -30,86 +30,115 @@ const judgeIfActive = (timeStamp, difTime) => {
   return lastActiveTime > cmpTime
 }
 
-// 获取数据并处理
-const getData = async () => {
+// 获取数据并处理 改为websocket方式
+const getData = () => {
   coordPointData = [{ name: startName, value: startPos }]
   linesData = []
+  let ws
   //如何动态修改这个url？
-  let response = await fetch(fetchUrl + '/json/')
-  let jsonData
-  if (response.ok) {
-    jsonData = await response.json()
-  } else {
-    console.log(response.status + '失败')
-    jsonData = Promise.reject('failed')
+  if (ws == null) {
+    ws = new WebSocket(wsUrl)
   }
+
+  ws.onopen = function (evt) {
+    console.log('WS OPEN')
+  }
+  ws.onclose = function (evt) {
+    console.log('WS CLOSE')
+    ws = null
+  }
+  ws.onmessage = function (evt) {
+    // 对元素进行更新
+    console.log('WS RECV DATA')
+    let recvData = JSON.parse(evt.data)
+    let textArea = document.getElementById('stats')
+    textArea.innerHTML = recvData.bandwidthstr
+
+    for (let data of recvData.bandwidthlist) {
+      ipMap.set(data.value.ip, data)
+      // 私网ip不绘图 （但是之后统计需要使用）
+      if (data.value.longitude == 0 && data.value.latitude == 0) {
+        continue
+      }
+      if (data.value.city == '') {
+        //locationMap里面存的是同一个地点的一系列的ip:data map
+        let locationIPMap = locationMap.get(data.value.country)
+        if (locationIPMap === undefined) {
+          locationIPMap = new HashMap()
+        }
+        locationIPMap.set(data.key, data)
+        locationMap.set(data.value.country, locationIPMap)
+      } else {
+        let locationIPMap = locationMap.get(data.value.city)
+        if (locationIPMap === undefined) {
+          locationIPMap = new HashMap()
+        }
+        locationIPMap.set(data.key, data)
+        locationMap.set(data.value.city, locationIPMap)
+      }
+    }
+
+    // 处理需要显示的数据 排除过期的
+    for (let locationPair of locationMap) {
+      let location = locationPair.key
+      let country
+      // 如果一个location所有的ip 连接数据都过期了，那么不显示 （只要有一个没过期的就可以显示
+      // 10s内活跃连接
+      let locationValid = false
+      let locationLongitude, locationLatitude
+      for (let ipPair of locationPair.value) {
+        if (judgeIfActive(ipPair.value.value.lastactive, 60 * 1000)) {
+          locationValid = true
+          // 是否考虑建立城市-国家map？
+          country = ipPair.value.value.country
+          locationLongitude = ipPair.value.value.longitude
+          locationLatitude = ipPair.value.value.latitude
+          // 放入显示列表中
+        } else {
+          // console.log('发现过期')
+        }
+      }
+      // 只有当前地点至少有一条一分钟内活跃过的连接，才通过图形进行显示
+      if (locationValid) {
+        coordPointData.push({
+          name: location,
+          value: [locationLongitude, locationLatitude],
+        })
+        // GeoLite中的经纬度精度高了，导致同一城市可能出现不同的经纬度，造成重新画线
+        linesData.push({
+          fromName: startName,
+          toName: location,
+          coords: [startPos, [locationLongitude, locationLatitude]],
+        })
+      } else {
+        // 出现过期城市 清除
+      }
+    }
+
+    // 排序一次能否减少dataIndex变化-但是无法彻底解决问题 （或者画线但是不显示？
+    linesData.sort((m, n) => m.toName - n.toName)
+
+    let option = chart.getOption()
+    option.series[0].data = coordPointData
+    option.series[1].data = linesData
+    chart.setOption(option)
+  }
+
+  ws.onerror = function (evt) {
+    console.log('ERROR: ' + evt.data)
+  }
+  // let response = await fetch(fetchUrl + '/json/')
+  // let jsonData
+  // if (response.ok) {
+  //   jsonData = await response.json()
+  // } else {
+  //   console.log(response.status + '失败')
+  //   jsonData = Promise.reject('failed')
+  // }
   // 坐标点 起点手动设置
   // 之后需要考虑时间戳，以及创建一个map，记录到同一个地点的多个连接（多个ip归属于一个地方）
   // 原始数据处理、分类、去除过期的数据
-  for (let data of jsonData) {
-    ipMap.set(data.value.ip, data)
-    // 私网ip不绘图 （但是之后统计需要使用）
-    if (data.value.longitude == 0 && data.value.latitude == 0) {
-      continue
-    }
-    if (data.value.city == '') {
-      //locationMap里面存的是同一个地点的一系列的ip:data map
-      let locationIPMap = locationMap.get(data.value.country)
-      if (locationIPMap === undefined) {
-        locationIPMap = new HashMap()
-      }
-      locationIPMap.set(data.key, data)
-      locationMap.set(data.value.country, locationIPMap)
-    } else {
-      let locationIPMap = locationMap.get(data.value.city)
-      if (locationIPMap === undefined) {
-        locationIPMap = new HashMap()
-      }
-      locationIPMap.set(data.key, data)
-      locationMap.set(data.value.city, locationIPMap)
-    }
-  }
-
-  // 处理需要显示的数据 排除过期的
-  for (let locationPair of locationMap) {
-    let location = locationPair.key
-    let country
-    // 如果一个location所有的ip 连接数据都过期了，那么不显示 （只要有一个没过期的就可以显示
-    // 10s内活跃连接
-    let locationValid = false
-    let locationLongitude, locationLatitude
-    for (let ipPair of locationPair.value) {
-      if (judgeIfActive(ipPair.value.value.lastactive, 60 * 1000)) {
-        locationValid = true
-        // 是否考虑建立城市-国家map？
-        country = ipPair.value.value.country
-        locationLongitude = ipPair.value.value.longitude
-        locationLatitude = ipPair.value.value.latitude
-        // 放入显示列表中
-      } else {
-        // console.log('发现过期')
-      }
-    }
-    // 只有当前地点至少有一条一分钟内活跃过的连接，才通过图形进行显示
-    if (locationValid) {
-      coordPointData.push({
-        name: location,
-        value: [locationLongitude, locationLatitude],
-      })
-      // GeoLite中的经纬度精度高了，导致同一城市可能出现不同的经纬度，造成重新画线
-      linesData.push({
-        fromName: startName,
-        toName: location,
-        coords: [startPos, [locationLongitude, locationLatitude]],
-      })
-    } else {
-      // 出现过期城市 清除
-    }
-  }
-  // 排序一次能否减少dataIndex变化-但是无法彻底解决问题 （或者画线但是不显示？
-  linesData.sort((m, n) => m.toName - n.toName)
 }
-
 // 绘图
 const draw = () => {
   let option = {
@@ -270,23 +299,14 @@ window.onresize = () => {
   chart.resize()
 }
 
-// 定时更新
-const updateMap = async () => {
-  await getData()
-  let option = chart.getOption()
-  option.series[0].data = coordPointData
-  option.series[1].data = linesData
-  chart.setOption(option)
-}
-
 // 最初绘图
 draw()
-updateMap()
+getData()
 // 运行（后期数据更新
-setInterval(async () => {
-  try {
-    await updateMap()
-  } catch (err) {
-    console.log('error')
-  }
-}, 5000)
+// setInterval(async () => {
+//   try {
+//     await updateMap()
+//   } catch (err) {
+//     console.log('error')
+//   }
+// }, 5000)

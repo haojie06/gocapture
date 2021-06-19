@@ -96,7 +96,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 // 主协程监听web端口，所以需要第三个协程与抓包协程通信并计算,以及暂时保存数据
 func getData() {
 	// 用于和web服务器通信 (测试时传递文本而不是List)
-	bandwidthListChan := make(chan BandwidthData)
+	bandwidthListChan := make(chan BandwidthData, 10)
 	wsDataChan := make(chan IPStruct)
 	var bandwidthData BandwidthData
 	go gocapture(bandwidthListChan, wsDataChan)
@@ -105,40 +105,47 @@ func getData() {
 		select {
 		case signal := <-sigChan:
 			{
-				// 接收到信号返回本地变量
+				// 接收到信号返回本地变量 (被动推送)
 				if signal == "getStr" {
-					strChan <- bandwidthData.bandwidthStatisticStr
+					strChan <- bandwidthData.BandwidthStatisticStr
 				} else if signal == "getData" {
 					// JSON形式返回
 					// 对时间参数进行筛选(仅对JSON请求有效)
-					jsonData, err := json.Marshal(bandwidthData.bandwidthList)
+					jsonData, err := json.Marshal(bandwidthData.BandwidthList)
 					handleErr(err, "序列化BandwidthList为JSON")
 					jsonChan <- string(jsonData)
 				}
 			}
 		case data := <-bandwidthListChan:
 			{
+				// 改成主动通过websocket推送?
 				// 不断从抓包协程里获得流量统计信息，并更新本地变量
 				bandwidthData = data
+				jsonData, err := json.Marshal(bandwidthData)
+				handleErr(err, "序列化BandwidthList为JSON")
+				// 需要发送两个消息,怎么区分呢
+				writeMessageThroughWS(jsonData)
 			}
-		case wsData := <-wsDataChan:
-			{
-				// 立即向当前开放的ws conn列表推送
-				jsonData, err := json.Marshal(wsData)
-				handleErr(err, "ws传输数据转为JSON")
-				for index, conn := range wsConnList {
-					//如果向关闭的连接写数据,会有异常,移除该连接
-					err := conn.WriteMessage(websocket.TextMessage, jsonData)
-					if err != nil {
-						conn.Close()
-						wsConnList = append(wsConnList[:index], wsConnList[index+1:]...)
-					}
-				}
-			}
+			// case _ = <-wsDataChan:
+			// 	{
+			// 		// 立即向当前开放的ws conn列表推送
+			// 		// jsonData, err := json.Marshal(wsData)
+			// 		// handleErr(err, "ws传输数据转为JSON")
+			// 		// writeMessageThroughWS(jsonData)
+			// 	}
 		}
 	}
 }
-
+func writeMessageThroughWS(msg []byte) {
+	for index, conn := range wsConnList {
+		//如果向关闭的连接写数据,会有异常,移除该连接
+		err := conn.WriteMessage(websocket.TextMessage, msg)
+		if err != nil {
+			conn.Close()
+			wsConnList = append(wsConnList[:index], wsConnList[index+1:]...)
+		}
+	}
+}
 func allowCORS(w http.ResponseWriter) {
 	// 允许跨域
 	w.Header().Set("Access-Control-Allow-Origin", "*")                                                            // 允许访问所有域，可以换成具体url，注意仅具体url才能带cookie信息

@@ -148,7 +148,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
-		var pushIPInfo IPStruct
+		// var pushIPInfo IPStruct
 		if packet.NetworkLayer() != nil {
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
 			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
@@ -156,11 +156,11 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				ipBandwithInfo.OutBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
 				ipBandwithInfo.LastActive = packet.Metadata().Timestamp
-				pushIPInfo = *ipBandwithInfo
+				// pushIPInfo = *ipBandwithInfo
 			} else {
 				// 还没有对应ip的记录时
 				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
-				pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]
+				// pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]
 			}
 			// 然后是 dst部分
 			if ipBandwithInfo, exist := bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]; exist {
@@ -168,14 +168,16 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				ipBandwithInfo.InBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
 				ipBandwithInfo.LastActive = packet.Metadata().Timestamp
-				pushIPInfo = *ipBandwithInfo
+				// pushIPInfo = *ipBandwithInfo
 			} else {
 				// 还没有对应ip的记录时
 				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
-				pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]
+				// pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]
 			}
 			// [临时放置]推送给ws频道
-			wsDataChan <- pushIPInfo
+			// wsDataChan <- pushIPInfo
+			wsDataChan = nil
+
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
 			// 每flushInterval个包打印一次统计
 			if packetCount >= flushInterval {
@@ -244,9 +246,9 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 		}
 	}
 	//clearScreen()
-	//fmt.Println(drawStr)
+	fmt.Println(drawStr)
 	// 写在这不合适，该函数应该专职打印
-	bandwidthData.bandwidthStatisticStr = drawStr
-	bandwidthData.bandwidthList = bandwidthList
+	bandwidthData.BandwidthStatisticStr = drawStr
+	bandwidthData.BandwidthList = bandwidthList
 	bandwidthDataChan <- bandwidthData
 }

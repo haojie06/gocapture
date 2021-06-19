@@ -24,8 +24,8 @@ type Option struct {
 
 // 管道传输的流量统计信息结构
 type BandwidthData struct {
-	bandwidthStatisticStr string
-	bandwidthList         PairList
+	BandwidthStatisticStr string   `json:"bandwidthstr"`
+	BandwidthList         PairList `json:"bandwidthlist"`
 }
 
 // 用于实现map的排序输出(先转为slice，并使用自定义个排序接口)
