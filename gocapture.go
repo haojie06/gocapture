@@ -245,7 +245,7 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
 		}
 	}
-	//clearScreen()
+	clearScreen()
 	fmt.Println(drawStr)
 	// 写在这不合适，该函数应该专职打印
 	bandwidthData.BandwidthStatisticStr = drawStr
