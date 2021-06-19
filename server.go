@@ -69,7 +69,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	// handleErr(err, "升级ws连接")
 	//开一个协程和客户端通信
 	if err == nil {
+		// 添加到列表中,之后数据更新的时候进行通知
 		wsConnList = append(wsConnList, conn)
+		sigChan <- "initData"
+		jsonData := <-jsonChan
+		// 建立连接后,立即推送初始数据
+		conn.WriteMessage(websocket.TextMessage, []byte(jsonData))
+		// 暂时不需要从连接中读取输入,所以先注释掉了
 		// go func() {
 		// 	//升级连接后，持续的读写
 		// 	defer conn.Close()
@@ -113,6 +119,11 @@ func getData() {
 					// 对时间参数进行筛选(仅对JSON请求有效)
 					jsonData, err := json.Marshal(bandwidthData.BandwidthList)
 					handleErr(err, "序列化BandwidthList为JSON")
+					jsonChan <- string(jsonData)
+				} else if signal == "initData" {
+					// 建立ws连接后立即推送一次数据
+					jsonData, err := json.Marshal(bandwidthData)
+					handleErr(err, "序列化BandwidthData为JSON")
 					jsonChan <- string(jsonData)
 				}
 			}

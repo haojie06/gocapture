@@ -121,7 +121,6 @@ const getData = () => {
 
     let option = chart.getOption()
     option.series[0].data = coordPointData
-    console.log(linesData.length)
     option.series[1].data = linesData
     chart.setOption(option)
   }
