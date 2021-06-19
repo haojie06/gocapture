@@ -170,12 +170,13 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				// 还没有对应ip的记录时
 				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
 			}
-			// 每十个包打印一次统计
-			if packetCount > flushInterval {
+			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
+			// 每flushInterval个包打印一次统计
+			if packetCount >= flushInterval {
 				printStatistic(bandwidthMap, "city", bandwidthDataChan, geoDB)
 				packetCount = 0
 			}
-			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
+
 		}
 	}
 }
@@ -202,7 +203,7 @@ func dataTransfer(byteCount int) string {
 // 打印统计信息 (这个传参嵌套太多层了)
 func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) {
 	var bandwidthData BandwidthData
-	drawStr := fmt.Sprintf("MAP LENGTH: %d", len(bandwidthMap))
+	drawStr := fmt.Sprintf("记录IP数: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
 	bandwidthList := sortIPs(bandwidthMap)
 	// bandwidthListChan <- bandwidthList
