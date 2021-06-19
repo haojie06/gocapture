@@ -66,20 +66,26 @@ func jsonHandler(w http.ResponseWriter, req *http.Request) {
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	// allowCORS(w)
 	conn, err := upgrader.Upgrade(w, r, nil)
-	wsConnList = append(wsConnList, conn)
 	// handleErr(err, "升级ws连接")
 	//开一个协程和客户端通信
 	if err == nil {
-		go func() {
-			//升级连接后，持续的读写
-			defer conn.Close()
-			for {
-				messageType, message, err := conn.ReadMessage()
-				logErr(err, "从websocket中读取数据")
-				err = conn.WriteMessage(messageType, message)
-				logErr(err, "向websocket中写入数据")
-			}
-		}()
+		wsConnList = append(wsConnList, conn)
+		// go func() {
+		// 	//升级连接后，持续的读写
+		// 	defer conn.Close()
+		// 	// 注册断开处理
+		// 	conn.SetCloseHandler(func(code int, text string) error {
+		// 		// 是否应该用更好的方式清除列表中已断开的连接?
+		// 		log.Println("客户端断开连接", code, "->", text)
+		// 		return nil
+		// 	})
+		// 	for {
+		// 		messageType, message, err := conn.ReadMessage()
+		// 		logErr(err, "从websocket中读取数据")
+		// 		err = conn.WriteMessage(messageType, message)
+		// 		logErr(err, "向websocket中写入数据")
+		// 	}
+		// }()
 	} else {
 		// 无效ws请求
 		fmt.Println("无效请求", err.Error())
@@ -120,8 +126,13 @@ func getData() {
 				// 立即向当前开放的ws conn列表推送
 				jsonData, err := json.Marshal(wsData)
 				handleErr(err, "ws传输数据转为JSON")
-				for _, conn := range wsConnList {
-					conn.WriteMessage(websocket.TextMessage, jsonData)
+				for index, conn := range wsConnList {
+					//如果向关闭的连接写数据,会有异常,移除该连接
+					err := conn.WriteMessage(websocket.TextMessage, jsonData)
+					if err != nil {
+						conn.Close()
+						wsConnList = append(wsConnList[:index], wsConnList[index+1:]...)
+					}
 				}
 			}
 		}
