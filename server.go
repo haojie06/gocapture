@@ -5,9 +5,20 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
+var wsConnList []*websocket.Conn
 var sigChan, jsonChan, strChan chan string
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	// 解决跨域问题 (允许) 除了域名和端口,跨域和协议也相关
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 func main() {
 	var listenPort string
@@ -24,6 +35,7 @@ func main() {
 	http.HandleFunc("/", pageHandler)
 	http.HandleFunc("/str/", strHandler)
 	http.HandleFunc("/json/", jsonHandler)
+	http.HandleFunc("/ws", wsHandler)
 	err := http.ListenAndServe(":"+listenPort, nil)
 	handleErr(err, "开启服务器监听")
 }
@@ -50,12 +62,38 @@ func jsonHandler(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, data)
 }
 
+//websocket处理
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+	// allowCORS(w)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	wsConnList = append(wsConnList, conn)
+	// handleErr(err, "升级ws连接")
+	//开一个协程和客户端通信
+	if err == nil {
+		go func() {
+			//升级连接后，持续的读写
+			defer conn.Close()
+			for {
+				messageType, message, err := conn.ReadMessage()
+				logErr(err, "从websocket中读取数据")
+				err = conn.WriteMessage(messageType, message)
+				logErr(err, "向websocket中写入数据")
+			}
+		}()
+	} else {
+		// 无效ws请求
+		fmt.Println("无效请求", err.Error())
+		fmt.Fprintf(w, "无效请求")
+	}
+}
+
 // 主协程监听web端口，所以需要第三个协程与抓包协程通信并计算,以及暂时保存数据
 func getData() {
 	// 用于和web服务器通信 (测试时传递文本而不是List)
 	bandwidthListChan := make(chan BandwidthData)
+	wsDataChan := make(chan IPStruct)
 	var bandwidthData BandwidthData
-	go gocapture(bandwidthListChan)
+	go gocapture(bandwidthListChan, wsDataChan)
 	// 需要使用select 关键字  不断从bandwidthChan中获取信息 存入变量中，从dataChan收到信号则传送数据
 	for {
 		select {
@@ -76,6 +114,15 @@ func getData() {
 			{
 				// 不断从抓包协程里获得流量统计信息，并更新本地变量
 				bandwidthData = data
+			}
+		case wsData := <-wsDataChan:
+			{
+				// 立即向当前开放的ws conn列表推送
+				jsonData, err := json.Marshal(wsData)
+				handleErr(err, "ws传输数据转为JSON")
+				for _, conn := range wsConnList {
+					conn.WriteMessage(websocket.TextMessage, jsonData)
+				}
 			}
 		}
 	}
