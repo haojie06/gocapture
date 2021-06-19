@@ -32,8 +32,6 @@ const judgeIfActive = (timeStamp, difTime) => {
 
 // 获取数据并处理 改为websocket方式
 const getData = () => {
-  coordPointData = [{ name: startName, value: startPos }]
-  linesData = []
   let ws
   //如何动态修改这个url？
   if (ws == null) {
@@ -48,6 +46,9 @@ const getData = () => {
     ws = null
   }
   ws.onmessage = function (evt) {
+    // 清空之前的
+    coordPointData = [{ name: startName, value: startPos }]
+    linesData = []
     // 对元素进行更新
     console.log('WS RECV DATA')
     let recvData = JSON.parse(evt.data)
@@ -120,6 +121,7 @@ const getData = () => {
 
     let option = chart.getOption()
     option.series[0].data = coordPointData
+    console.log(linesData.length)
     option.series[1].data = linesData
     chart.setOption(option)
   }
