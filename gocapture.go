@@ -161,7 +161,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		// log.Println(packet.NetworkLayer().NetworkFlow().Dst().String())
 		// 考虑到流量统计...不开混杂模式的时候只抓得到本地的包
 		// 首先判断src部分
-		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
+		// !! 注意 ARP的包没有网络层...所以会出现空指针错误
 		// var pushIPInfo IPStruct
 		// fmt.Println(foundLayerTypes)
 		if ethLayer.NextLayerType() == layers.LayerTypeIPv4 || ethLayer.NextLayerType() == layers.LayerTypeIPv6 {
@@ -173,6 +173,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				networkLayerPacket = &ip6Layer
 			}
 
+			// 讲抓到的包存到ip->map中，或者更新已有的记录
 			if ipBandwithInfo, ok := bandwidthMap[networkLayerPacket.NetworkFlow().Src().String()]; ok {
 				// 已经有记录时
 				ipBandwithInfo.OutBytes += packet.Metadata().Length
@@ -203,7 +204,10 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 			fmt.Printf("\r[%d/%d]", packetCount, flushInterval)
 			// 每flushInterval个包打印一次统计
 			if packetCount >= flushInterval {
-				printStatistic(bandwidthMap, "city", bandwidthDataChan, geoDB)
+				bandwidthData := analyse(bandwidthMap, "city", bandwidthDataChan, geoDB)
+				printStatistic(bandwidthData.BandwidthStatisticStr)
+				// 传输给web服务器
+				bandwidthDataChan <- bandwidthData
 				packetCount = 0
 			}
 		}
@@ -230,7 +234,7 @@ func dataTransfer(byteCount int) string {
 }
 
 // 打印统计信息 (这个传参嵌套太多层了)
-func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) {
+func analyse(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) BandwidthData {
 	var bandwidthData BandwidthData
 	drawStr := fmt.Sprintf("记录IP数: %d", len(bandwidthMap))
 	// 通过Slice对Map进行排序
@@ -266,10 +270,12 @@ func printStatistic(bandwidthMap map[string]*IPStruct, geoType string, bandwidth
 			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
 		}
 	}
-	clearScreen()
-	fmt.Println(drawStr)
-	// 写在这不合适，该函数应该专职打印
 	bandwidthData.BandwidthStatisticStr = drawStr
 	bandwidthData.BandwidthList = bandwidthList
-	bandwidthDataChan <- bandwidthData
+	return bandwidthData
+}
+
+func printStatistic(drawStr string) {
+	clearScreen()
+	fmt.Println(drawStr)
 }
