@@ -5,9 +5,6 @@ import (
 	"math"
 	"net"
 	"os"
-	"os/exec"
-	"runtime"
-	"sort"
 	"strconv"
 
 	"github.com/google/gopacket"
@@ -38,29 +35,6 @@ func gocapture(bandwidthDataChan chan BandwidthData, wsDataChan chan IPStruct) {
 	capturePackets(bandwidthMap, option, bandwidthDataChan, wsDataChan)
 }
 
-func clearScreen() {
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	} else if runtime.GOOS == "linux" {
-		cmd := exec.Command("clear") //Linux example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	}
-}
-
-func sortIPs(bandwidthMap map[string]*IPStruct) PairList {
-	pl := make(PairList, len(bandwidthMap))
-	i := 0
-	for k, v := range bandwidthMap {
-		pl[i] = Pair{k, v}
-		i++
-	}
-	sort.Sort(sort.Reverse(pl))
-	// sort.Sort(pl)
-	return pl
-}
 func getGeoDb(dbType string) *geoip2.Reader {
 	var db *geoip2.Reader
 	var err error
@@ -74,8 +48,6 @@ func getGeoDb(dbType string) *geoip2.Reader {
 	return db
 }
 func geoIPCountry(ipStr string, geoDB *geoip2.Reader) *geoip2.Country {
-	// 不要重复打开！使用闭包！
-	// defer db.Close()
 	ip := net.ParseIP(ipStr)
 	record, err := geoDB.Country(ip)
 	handleErr(err, "解析国家信息")
@@ -83,7 +55,6 @@ func geoIPCountry(ipStr string, geoDB *geoip2.Reader) *geoip2.Country {
 }
 
 func geoIPCity(ipStr string, geoDB *geoip2.Reader) *geoip2.City {
-	// defer db.Close()
 	ip := net.ParseIP(ipStr)
 	record, err := geoDB.City(ip)
 	handleErr(err, "解析城市信息")
@@ -126,6 +97,7 @@ func setOption(option *Option) {
 	fmt.Println("开始进行抓包")
 }
 
+// 抓包并记录
 func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthDataChan chan BandwidthData, wsDataChan chan IPStruct) {
 	deviceName := option.deviceName
 	flushInterval := option.flushInterval
@@ -233,7 +205,7 @@ func dataTransfer(byteCount int) string {
 	return formatBandwidth
 }
 
-// 打印统计信息 (这个传参嵌套太多层了)
+// 生成统计信息
 func analyse(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) BandwidthData {
 	var bandwidthData BandwidthData
 	drawStr := fmt.Sprintf("记录IP数: %d", len(bandwidthMap))
