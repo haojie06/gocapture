@@ -193,7 +193,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				// pushIPInfo = *ipBandwithInfo
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
+				bandwidthMap[networkLayerPacket.NetworkFlow().Dst().String()] = &IPStruct{OutBytes: 0, InBytes: packet.Metadata().Length, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
 				// pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]
 			}
 			// [临时放置]推送给ws频道
