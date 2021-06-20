@@ -18,13 +18,24 @@ func startMenu() {
 	optionList := widgets.NewList()
 	optionList.Title = "Options"
 	optionList.Rows = []string{
-		"[0] start 开始程序",
+		"[0] start",
 		"[1] exit",
 		"[2] continue",
 	}
 	voidBlock := ui.NewBlock()
+	title := widgets.NewParagraph()
+	title.PaddingLeft = termWidth / 3
+	title.Text = `
+  ______                                                        
+ / _____)                             _                         
+| /  ___   ___    ____   ____  ____  | |_   _   _   ____   ____ 
+| | (___) / _ \  / ___) / _  ||  _ \ |  _) | | | | / ___) / _  )
+| \____/|| |_| |( (___ ( ( | || | | || |__ | |_| || |    ( (/ / 
+ \_____/  \___/  \____) \_||_|| ||_/  \___) \____||_|     \____)
+                              |_|                               
+`
 	voidBlock.Border = false
-	grid.Set(ui.NewRow(1.0/2, ui.NewCol(1.0, voidBlock)), ui.NewRow(1.0/2, ui.NewCol(0.25, voidBlock), ui.NewCol(0.5, optionList), ui.NewCol(0.25, voidBlock)))
+	grid.Set(ui.NewRow(1.0/2, ui.NewCol(1.0, title)), ui.NewRow(1.0/2, ui.NewCol(0.25, voidBlock), ui.NewCol(0.5, optionList), ui.NewCol(0.25, voidBlock)))
 	ui.Render(grid)
 
 	for e := range ui.PollEvents() {
