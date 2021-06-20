@@ -177,7 +177,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 			// 每flushInterval个包打印一次统计
 			if packetCount >= flushInterval {
 				bandwidthData := analyse(bandwidthMap, "city", bandwidthDataChan, geoDB)
-				printStatistic(bandwidthData.BandwidthStatisticStr)
+				// printStatistic(bandwidthData.BandwidthStatisticStr)
 				// 传输给web服务器
 				bandwidthDataChan <- bandwidthData
 				packetCount = 0
