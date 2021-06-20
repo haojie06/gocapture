@@ -17,6 +17,16 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
+// 暂时不解码应用层
+var (
+	// Will reuse these for each packet
+	ethLayer layers.Ethernet
+	ip4Layer layers.IPv4
+	ip6Layer layers.IPv6
+	tcpLayer layers.TCP
+	udpLayer layers.UDP
+)
+
 // 需要以管理员权限运行以及安装 winpcap或者libpcap
 func gocapture(bandwidthDataChan chan BandwidthData, wsDataChan chan IPStruct) {
 	var option Option
@@ -136,7 +146,11 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 	// 根据不同版本开启不同的geo数据库
 	geoDB := getGeoDb("city")
 	defer geoDB.Close()
+	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &tcpLayer, &udpLayer, &ip4Layer, &ip6Layer)
+	foundLayerTypes := []gopacket.LayerType{}
 	for packet := range packetSource.Packets() {
+		_ = parser.DecodeLayers(packet.Data(), &foundLayerTypes)
+		// handleErr(err, "解码网络包")
 		// Process packet here
 		packetCount++
 		// 是否要写到文件中去
@@ -149,9 +163,17 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 		// 首先判断src部分
 		//!! 注意 ARP的包没有网络层...所以会出现空指针错误
 		// var pushIPInfo IPStruct
-		if packet.NetworkLayer() != nil {
+		// fmt.Println(foundLayerTypes)
+		if ethLayer.NextLayerType() == layers.LayerTypeIPv4 || ethLayer.NextLayerType() == layers.LayerTypeIPv6 {
 			// log.Println(packet.NetworkLayer().NetworkFlow().String())
-			if ipBandwithInfo, ok := bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]; ok {
+			var networkLayerPacket gopacket.NetworkLayer
+			if ethLayer.NextLayerType() == layers.LayerTypeIPv4 {
+				networkLayerPacket = &ip4Layer
+			} else {
+				networkLayerPacket = &ip6Layer
+			}
+
+			if ipBandwithInfo, ok := bandwidthMap[networkLayerPacket.NetworkFlow().Src().String()]; ok {
 				// 已经有记录时
 				ipBandwithInfo.OutBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
@@ -159,11 +181,11 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				// pushIPInfo = *ipBandwithInfo
 			} else {
 				// 还没有对应ip的记录时
-				bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
+				bandwidthMap[networkLayerPacket.NetworkFlow().Src().String()] = &IPStruct{OutBytes: packet.Metadata().Length, InBytes: 0, TotalBytes: packet.Metadata().Length, LastActive: packet.Metadata().Timestamp}
 				// pushIPInfo = *bandwidthMap[packet.NetworkLayer().NetworkFlow().Src().String()]
 			}
 			// 然后是 dst部分
-			if ipBandwithInfo, exist := bandwidthMap[packet.NetworkLayer().NetworkFlow().Dst().String()]; exist {
+			if ipBandwithInfo, exist := bandwidthMap[networkLayerPacket.NetworkFlow().Dst().String()]; exist {
 				// 已经有记录时
 				ipBandwithInfo.InBytes += packet.Metadata().Length
 				ipBandwithInfo.TotalBytes = ipBandwithInfo.InBytes + ipBandwithInfo.OutBytes
@@ -184,7 +206,6 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 				printStatistic(bandwidthMap, "city", bandwidthDataChan, geoDB)
 				packetCount = 0
 			}
-
 		}
 	}
 }
