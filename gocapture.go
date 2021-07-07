@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"net"
@@ -177,7 +178,7 @@ func capturePackets(bandwidthMap map[string]*IPStruct, option Option, bandwidthD
 			// 每flushInterval个包打印一次统计
 			if packetCount >= flushInterval {
 				bandwidthData := analyse(bandwidthMap, "city", bandwidthDataChan, geoDB)
-				// printStatistic(bandwidthData.BandwidthStatisticStr)
+				printStatistic(bandwidthData.BandwidthStatisticStr)
 				// 传输给web服务器
 				bandwidthDataChan <- bandwidthData
 				packetCount = 0
@@ -208,7 +209,8 @@ func dataTransfer(byteCount int) string {
 // 生成统计信息
 func analyse(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataChan chan BandwidthData, geoDB *geoip2.Reader) BandwidthData {
 	var bandwidthData BandwidthData
-	drawStr := fmt.Sprintf("记录IP数: %d", len(bandwidthMap))
+	var drawBuffer bytes.Buffer
+	drawBuffer.WriteString(fmt.Sprintf("记录IP数: %d", len(bandwidthMap)))
 	// 通过Slice对Map进行排序
 	bandwidthList := sortIPs(bandwidthMap)
 	// bandwidthListChan <- bandwidthList
@@ -237,12 +239,12 @@ func analyse(bandwidthMap map[string]*IPStruct, geoType string, bandwidthDataCha
 			}
 		}
 		if index == 0 {
-			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
+			drawBuffer.WriteString(fmt.Sprintf("\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s(Local)", ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation))
 		} else {
-			drawStr = fmt.Sprintf("%s\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", drawStr, ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation)
+			drawBuffer.WriteString(fmt.Sprintf("\nip: %-16s output: %-6s input: %-6s total: %-7s location: %-8s", ips.Key, dataTransfer(ips.Value.OutBytes), dataTransfer(ips.Value.InBytes), dataTransfer(ips.Value.TotalBytes), IPLocation))
 		}
 	}
-	bandwidthData.BandwidthStatisticStr = drawStr
+	bandwidthData.BandwidthStatisticStr = drawBuffer.String()
 	bandwidthData.BandwidthList = bandwidthList
 	return bandwidthData
 }

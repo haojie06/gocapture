@@ -37,14 +37,14 @@ func startMenu() {
 	voidBlock.Border = false
 	grid.Set(ui.NewRow(1.0/2, ui.NewCol(1.0, title)), ui.NewRow(1.0/2, ui.NewCol(0.25, voidBlock), ui.NewCol(0.5, optionList), ui.NewCol(0.25, voidBlock)))
 	ui.Render(grid)
-
+	// 之后加上键盘监听，选择选项，并修改对应的option
 	for e := range ui.PollEvents() {
 		if e.Type == ui.KeyboardEvent {
 			break
 		}
 	}
 }
-func drawcui() {
+func drawStatistic() {
 	err := ui.Init()
 	handleErr(err, "CUI初始化")
 	defer ui.Close()
