@@ -4,7 +4,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'rm -f nac.syso'
-                sh 'apt install libpcap-dev && go build'
+                sh 'apt update && apt install -y libpcap-dev && go build'
             }
         }
     }
