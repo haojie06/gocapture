@@ -1,11 +1,10 @@
 pipeline {
     agent { docker 'golang:latest' }
     stages {
-        stage('build') {
+        stage('Build') {
             steps {
-                sh 'apk add libpcap-dev'
                 sh 'rm -f nac.syso'
-                sh 'go build'
+                sh 'apk add libpcap-dev && go build'
             }
         }
     }
