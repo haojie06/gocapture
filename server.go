@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
-var wsConnList []*websocket.Conn
+type myWsConn struct {
+	conn *websocket.Conn
+	sync.Mutex
+}
+
+var wsConnList []*myWsConn
 var sigChan, jsonChan, strChan chan string
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -71,7 +77,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	//开一个协程和客户端通信
 	if err == nil {
 		// 添加到列表中,之后数据更新的时候进行通知
-		wsConnList = append(wsConnList, conn)
+		wsConnList = append(wsConnList, &myWsConn{conn: conn})
 		sigChan <- "initData"
 		jsonData := <-jsonChan
 		// 建立连接后,立即推送初始数据
@@ -130,12 +136,10 @@ func getData() {
 			}
 		case data := <-bandwidthListChan:
 			{
-				// 改成主动通过websocket推送?
-				// 不断从抓包协程里获得流量统计信息，并更新本地变量
-				bandwidthData = data
-				jsonData, err := json.Marshal(bandwidthData)
+				// 有数据到达时，向所有的ws连接写数据
+				jsonData, err := json.Marshal(data)
 				handleErr(err, "序列化BandwidthList为JSON")
-				// 需要发送两个消息,怎么区分呢
+				// 不支持向连接中并发写入数据，否则会panic
 				writeMessageThroughWS(jsonData)
 			}
 			// case _ = <-wsDataChan:
@@ -149,13 +153,15 @@ func getData() {
 	}
 }
 func writeMessageThroughWS(msg []byte) {
-	for index, conn := range wsConnList {
-		//如果向关闭的连接写数据,会有异常,移除该连接
-		err := conn.WriteMessage(websocket.TextMessage, msg)
+	for index, myConn := range wsConnList {
+		//如果向关闭的连接写数据,会有异常,移除该连接 当前锁住的是外层结构体，不是ws连接
+		myConn.Lock()
+		err := myConn.conn.WriteMessage(websocket.TextMessage, msg)
 		if err != nil {
-			conn.Close()
+			myConn.conn.Close()
 			wsConnList = append(wsConnList[:index], wsConnList[index+1:]...)
 		}
+		myConn.Unlock()
 	}
 }
 func allowCORS(w http.ResponseWriter) {
