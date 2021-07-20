@@ -28,7 +28,7 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	var listenPort string
-	startMenu()
+	// startMenu()
 	fmt.Print("请输入web服务器监听端口: ")
 	fmt.Scanln(&listenPort)
 	// 不要使用同一个管道传输str和json，不然在遇见同时请求的时候会出问题（顺序不符合预期
