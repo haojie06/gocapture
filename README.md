@@ -1,6 +1,6 @@
 # gocapture
 
-抓包以及流量统计,并在 web 进行可视化 [demo](http://con.ifine.eu:8080/) _另外有 cli 分支，提供单文件打包的纯命令行版本抓包与流量统计工具_
+抓包以及流量统计,并在 web 进行可视化  _另外有 cli 分支，提供单文件打包的纯命令行版本抓包与流量统计工具_
 
 运行前安装 winpcap（windows）或者 libpcap-dev（linux） linux改为静态链接libpcap库，不需要再安装libpcap了。
 
